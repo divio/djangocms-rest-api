@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
+from collections import OrderedDict
+
 from classytags.utils import flatten_context
 from cms.models import Page, Placeholder, CMSPlugin
 from django.core.urlresolvers import reverse
@@ -67,13 +69,64 @@ class PageSerializer(RequestSerializer, serializers.ModelSerializer):
         return ListSerializer(*args, **kwargs)
 
 
+# TODO: replace with better implementation
+def modelserializer_factory(mdl, fields=None, **kwargss):
+
+    def _get_declared_fields(attrs):
+        fields = [(field_name, attrs.pop(field_name))
+                  for field_name, obj in list(attrs.items())
+                  if isinstance(obj, serializers.Field)]
+        fields.sort(key=lambda x: x[1]._creation_counter)
+        return OrderedDict(fields)
+
+    class Base(object):
+        pass
+
+    Base._declared_fields = _get_declared_fields(kwargss)
+
+    class MySerializer(Base, serializers.ModelSerializer):
+        class Meta:
+            model = mdl
+
+        if fields:
+            setattr(Meta, "fields", fields)
+
+    return MySerializer
+
+
 class BasePluginSerializer(serializers.ModelSerializer):
+
+    plugin_data = serializers.SerializerMethodField()
+    inlines = serializers.SerializerMethodField()
 
     class Meta:
         model = CMSPlugin
-        fields = ['placeholder', 'parent', 'position', 'language', 'plugin_type', 'creation_date', 'changed_date', ]
+        fields = ['id', 'placeholder', 'parent', 'position', 'language', 'plugin_type', 'creation_date', 'changed_date',
+                  'plugin_data', 'inlines', ]
 
-        
+    def get_plugin_data(self, obj):
+
+        instance, plugin = obj.get_plugin_instance()
+        model = getattr(plugin, 'model', None)
+        if model:
+            serializer = modelserializer_factory(getattr(plugin, 'model', None))(instance)
+            return serializer.data
+        return {}
+
+    def get_inlines(self, obj):
+        instance, plugin = obj.get_plugin_instance()
+        inlines = getattr(plugin, 'inlines', [])
+        data = {}
+        for inline in inlines:
+            for related_object in instance._meta.related_objects:
+                if getattr(related_object, 'related_model', None) == inline.model:
+                    name = related_object.name
+                    serializer = modelserializer_factory(inline.model)(getattr(instance, name).all(), many=True)
+                    data[name] = serializer.data
+                    break
+        return data
+
+
 class PlaceHolderSerializer(RequestSerializer, serializers.ModelSerializer):
     plugins = serializers.SerializerMethodField()
 

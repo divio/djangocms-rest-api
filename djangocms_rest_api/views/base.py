@@ -21,5 +21,6 @@ class PlaceHolderViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class PluginViewSet(viewsets.ReadOnlyModelViewSet):
+    page_size = 100
     serializer_class = BasePluginSerializer
     queryset = CMSPlugin.objects.all()
