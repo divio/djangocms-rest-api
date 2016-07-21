@@ -70,7 +70,7 @@ class PageSerializer(RequestSerializer, serializers.ModelSerializer):
 
 
 # TODO: replace with better implementation
-def modelserializer_factory(mdl, fields=None, **kwargss):
+def modelserializer_factory(mdl, fields=None, **kwargs):
 
     def _get_declared_fields(attrs):
         fields = [(field_name, attrs.pop(field_name))
@@ -82,16 +82,16 @@ def modelserializer_factory(mdl, fields=None, **kwargss):
     class Base(object):
         pass
 
-    Base._declared_fields = _get_declared_fields(kwargss)
+    Base._declared_fields = _get_declared_fields(kwargs)
 
-    class MySerializer(Base, serializers.ModelSerializer):
+    class SerializerClass(Base, serializers.ModelSerializer):
         class Meta:
             model = mdl
 
         if fields:
             setattr(Meta, "fields", fields)
 
-    return MySerializer
+    return SerializerClass
 
 
 class BasePluginSerializer(serializers.ModelSerializer):

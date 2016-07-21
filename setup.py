@@ -31,7 +31,7 @@ setup(
     author_email='getmansky@steelkiwi.com',
     include_package_data=True,
     install_requires=[
-        'djangorestframework',
+        'djangorestframework==3.4.0',
     ],
     license='MIT',
     url='https://github.com/divio/djangocms-rest-api',
