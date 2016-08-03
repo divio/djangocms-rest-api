@@ -1,0 +1,18 @@
+{% load i18n %}
+{% load thumbnail %}
+
+<div class="carousel">
+    {% for slide in slides %}
+        <div>
+            <img src="{% thumbnail slide.image 1264x472 crop %}" alt="">
+            <div class="carousel-content">
+                <div class="carousel-cont">
+                    <div class="header-wrp">
+                        <h1>{{ instance.name }}</h1>
+                        <h2>{{ slide.title }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
