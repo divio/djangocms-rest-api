@@ -58,7 +58,7 @@ class PageSerializer(RequestSerializer, serializers.ModelSerializer):
         return obj.get_absolute_url(self.language)
 
     def get_url(self, obj):
-        return reverse('page-detail', args=(obj.pk,))
+        return reverse('api:page-detail', args=(obj.pk,))
 
     def get_redirect(self, obj):
         return obj.get_redirect(self.language)
@@ -94,6 +94,9 @@ def modelserializer_factory(mdl, fields=None, **kwargs):
     return SerializerClass
 
 
+# TODO: Add support for items with children (child_plugin_instances)
+# TODO: Check image plugin data serializer
+# TODO: decide if we need to return url for images with domain name or nor
 class BasePluginSerializer(serializers.ModelSerializer):
 
     plugin_data = serializers.SerializerMethodField()
@@ -127,12 +130,21 @@ class BasePluginSerializer(serializers.ModelSerializer):
         return data
 
 
+class SimplePageSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Page
+        fields = ['id', ]
+
+
 class PlaceHolderSerializer(RequestSerializer, serializers.ModelSerializer):
     plugins = serializers.SerializerMethodField()
+    page = SimplePageSerializer()
 
     class Meta:
         model = Placeholder
-        fields = ['slot', 'default_width', 'plugins']
+        fields = ['id', 'slot', 'plugins', 'page']
+        depth = 2
 
     def get_plugins(self, obj):
         return [plugin.id for plugin in obj.get_plugins(self.language)]
