@@ -7,6 +7,7 @@ import os.path
 from cms.api import create_page, add_plugin
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 
 from plugins.models import Slide
@@ -103,7 +104,7 @@ class PluginTestCase(CMSApiTestCase):
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'SliderWithInlinesPlugin', 'en', name='Slider')
         instance, plugin_model = plugin.get_plugin_instance()
-        from django.core.files.uploadedfile import SimpleUploadedFile
+
         image_path = os.path.join(os.path.dirname(__file__), 'test-image.jpg')
         image1 = SimpleUploadedFile(
             name='test_image.jpg', content=open(image_path, 'rb').read(), content_type='image/jpeg')
@@ -116,4 +117,31 @@ class PluginTestCase(CMSApiTestCase):
         self.assertEqual(len(response.data['inlines']), 1)
         self.assertEqual(len(response.data['inlines']['slides']), 2)
         self.assertEqual(response.data['inlines']['slides'][0]['image'], slide_1.image.url)
+        try:
+            os.remove(slide_1.image.path)
+        except OSError:
+            pass
+        try:
+            os.remove(slide_2.image.path)
+        except OSError:
+            pass
 
+    def test_plugin_with_children(self):
+        page = create_page('page', 'page.html', 'en', published=True)
+        placeholder = page.placeholders.get(slot='content')
+        columns = add_plugin(placeholder, "MultiColumnPlugin", "en")
+        column_1 = add_plugin(placeholder, "ColumnPlugin", "en", target=columns, width='10%')
+        column_2 = add_plugin(placeholder, "ColumnPlugin", "en", target=columns, width='30%')
+        text_plugin_1_1 = add_plugin(placeholder, "TextPlugin", "en", target=column_1, body="I'm the first")
+        text_plugin_1_2 = add_plugin(placeholder, "TextPlugin", "en", target=column_1, body="I'm the second")
+        text_plugin_2_1 = add_plugin(placeholder, "TextPlugin", "en", target=column_2, body="I'm the third")
+        url = reverse('api:plugin-detail', kwargs={'pk': columns.id})
+        response = self.client.get(url, format='json')
+        data = response.data
+        self.assertIn('children', data)
+        self.assertEqual(len(data['children']), 2)
+        self.assertEqual(len(data['children'][0]['children']), 2)
+        self.assertEqual(data['children'][0]['children'][0]['body'], text_plugin_1_1.body)
+        self.assertEqual(data['children'][0]['children'][1]['body'], text_plugin_1_2.body)
+        self.assertEqual(len(data['children'][1]['children']), 1)
+        self.assertEqual(data['children'][1]['children'][0]['body'], text_plugin_2_1.body)
