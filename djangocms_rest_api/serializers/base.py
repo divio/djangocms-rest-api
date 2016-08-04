@@ -5,6 +5,7 @@ from collections import OrderedDict
 
 from classytags.utils import flatten_context
 from cms.models import Page, Placeholder, CMSPlugin
+from cms.utils.plugins import build_plugin_tree, downcast_plugins
 from django.core.urlresolvers import reverse
 from rest_framework import serializers
 from rest_framework.serializers import ListSerializer
@@ -94,18 +95,21 @@ def modelserializer_factory(mdl, fields=None, **kwargs):
     return SerializerClass
 
 
-# TODO: Add support for items with children (child_plugin_instances)
+# TODO: add custom serializers for base plugins and use them
+# TODO: add ability to set custom serializers for plugins
+# TODO: cache dynamic serializers and reuse them instead of generation each time
 # TODO: Check image plugin data serializer
-# TODO: decide if we need to return url for images with domain name or nor
+# TODO: decide if we need to return url for images with domain name or not
 class BasePluginSerializer(serializers.ModelSerializer):
 
     plugin_data = serializers.SerializerMethodField()
     inlines = serializers.SerializerMethodField()
+    children = serializers.SerializerMethodField()
 
     class Meta:
         model = CMSPlugin
         fields = ['id', 'placeholder', 'parent', 'position', 'language', 'plugin_type', 'creation_date', 'changed_date',
-                  'plugin_data', 'inlines', ]
+                  'plugin_data', 'inlines', 'children']
 
     def get_plugin_data(self, obj):
 
@@ -127,6 +131,28 @@ class BasePluginSerializer(serializers.ModelSerializer):
                     serializer = modelserializer_factory(inline.model)(getattr(instance, name).all(), many=True)
                     data[name] = serializer.data
                     break
+        return data
+
+    def get_children(self, obj):
+        data = []
+        instance, plugin = obj.get_plugin_instance()
+        if not(getattr(plugin, 'allow_children', False) and getattr(plugin, 'child_classes', None)):
+            return data
+        children = obj.get_descendants().order_by('placeholder', 'path')
+        children = [obj] + list(children)
+        children = downcast_plugins(children)
+        children[0].parent_id = None
+        children = build_plugin_tree(children)
+        for child in children[0].child_plugin_instances:
+            def get_plugin_data(child_plugin):
+                serializer = modelserializer_factory(child_plugin._meta.model)(child_plugin)
+                plugin_data = serializer.data
+                if child_plugin.child_plugin_instances:
+                    plugin_data['children'] = []
+                    for plug in child_plugin.child_plugin_instances:
+                        plugin_data['children'].append(get_plugin_data(plug))
+                return plugin_data
+            data.append(get_plugin_data(child))
         return data
 
 
