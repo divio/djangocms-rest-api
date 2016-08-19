@@ -145,3 +145,39 @@ class PluginTestCase(CMSApiTestCase):
         self.assertEqual(data['children'][0]['children'][1]['body'], text_plugin_1_2.body)
         self.assertEqual(len(data['children'][1]['children']), 1)
         self.assertEqual(data['children'][1]['children'][0]['body'], text_plugin_2_1.body)
+
+    def test_plugin_with_children_with_inlines(self):
+        page = create_page('page', 'page.html', 'en', published=True)
+        placeholder = page.placeholders.get(slot='content')
+        columns = add_plugin(placeholder, "MultiColumnPlugin", "en")
+        column_1 = add_plugin(placeholder, "ColumnPlugin", "en", target=columns, width='10%')
+        column_2 = add_plugin(placeholder, "ColumnPlugin", "en", target=columns, width='30%')
+        column_3 = add_plugin(placeholder, "ColumnPlugin", "en", target=columns, width='60%')
+        text_plugin_1_1 = add_plugin(placeholder, "TextPlugin", "en", target=column_1, body="I'm the first")
+        text_plugin_1_2 = add_plugin(placeholder, "TextPlugin", "en", target=column_1, body="I'm the second")
+        text_plugin_2_1 = add_plugin(placeholder, "TextPlugin", "en", target=column_2, body="I'm the third")
+
+        plugin = add_plugin(placeholder, 'SliderWithInlinesPlugin', 'en', target=column_3, name='Slider')
+        instance, plugin_model = plugin.get_plugin_instance()
+
+        image_path = os.path.join(os.path.dirname(__file__), 'test-image.jpg')
+        image1 = SimpleUploadedFile(
+            name='test_image.jpg', content=open(image_path, 'rb').read(), content_type='image/jpeg')
+        image2 = SimpleUploadedFile(
+            name='test_image.jpg', content=open(image_path, 'rb').read(), content_type='image/jpeg')
+        slide_1 = Slide.objects.create(title='slide 1', image=image1, slider=instance)
+        slide_2 = Slide.objects.create(title='slide 2', image=image2, slider=instance)
+
+        url = reverse('api:plugin-detail', kwargs={'pk': columns.id})
+        response = self.client.get(url, format='json')
+        data = response.data
+        self.assertIn('children', data)
+        self.assertEqual(len(data['children']), 3)
+        self.assertEqual(len(data['children'][0]['children']), 2)
+        self.assertEqual(data['children'][0]['children'][0]['body'], text_plugin_1_1.body)
+        self.assertEqual(data['children'][0]['children'][1]['body'], text_plugin_1_2.body)
+        self.assertEqual(len(data['children'][1]['children']), 1)
+        self.assertEqual(data['children'][1]['children'][0]['body'], text_plugin_2_1.body)
+        self.assertIn('inlines', data['children'][2]['children'][0])
+        self.assertIn('slides', data['children'][2]['children'][0]['inlines'])
+        self.assertEqual(len(data['children'][2]['children'][0]['inlines']['slides']), 2)
