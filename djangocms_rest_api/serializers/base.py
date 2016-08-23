@@ -10,6 +10,7 @@ from django.core.urlresolvers import reverse
 from rest_framework import serializers
 from rest_framework.serializers import ListSerializer
 from djangocms_rest_api.serializers.utils import RequestSerializer
+from djangocms_rest_api.serializers.mapping import serializer_class_mapping
 
 serializer_cache = {}
 
@@ -131,15 +132,21 @@ class BasePluginSerializer(serializers.ModelSerializer):
                   'plugin_data', 'inlines', 'children']
 
     @staticmethod
-    def get_serializer(model, instance):
-        return modelserializer_factory(model)(instance)
+    def get_serializer(instance, plugin=None, model=None, **kwargs):
+        assert plugin or model, 'plugin or model should be provided'
+        serializer_class = None
+        if plugin:
+            serializer_class = serializer_class_mapping.get(type(plugin))
+        if not serializer_class:
+            serializer_class = modelserializer_factory(model)
+        return serializer_class(instance, **kwargs)
 
     def get_plugin_data(self, obj):
 
         instance, plugin = obj.get_plugin_instance()
         model = getattr(plugin, 'model', None)
         if model:
-            serializer = self.get_serializer(getattr(plugin, 'model', None), instance)
+            serializer = self.get_serializer(instance, model=getattr(plugin, 'model', None), plugin=plugin)
             return serializer.data
         return {}
 
@@ -158,7 +165,8 @@ class BasePluginSerializer(serializers.ModelSerializer):
             for related_object in instance._meta.related_objects:
                 if getattr(related_object, 'related_model', None) == inline.model:
                     name = related_object.name
-                    serializer = modelserializer_factory(inline.model)(getattr(instance, name).all(), many=True)
+                    # serializer = modelserializer_factory(inline.model)(getattr(instance, name).all(), many=True)
+                    serializer = self.get_serializer(getattr(instance, name).all(), model=inline.model, many=True)
                     data[name] = serializer.data
                     break
         return data
@@ -182,7 +190,8 @@ class BasePluginSerializer(serializers.ModelSerializer):
         children = build_plugin_tree(children)
 
         def get_plugin_data(child_plugin):
-            serializer = modelserializer_factory(child_plugin._meta.model)(child_plugin)
+            # serializer = modelserializer_factory(child_plugin._meta.model)(child_plugin)
+            serializer = self.get_serializer(child_plugin, model=child_plugin._meta.model)
             plugin_data = serializer.data
             plugin_data['inlines'] = self.get_inlines(child_plugin)
             if child_plugin.child_plugin_instances:
