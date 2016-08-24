@@ -8,6 +8,7 @@ from cms.api import create_page, add_plugin
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from filer.models import Image
 from rest_framework.test import APIClient
 
 from plugins.models import Slide
@@ -181,3 +182,15 @@ class PluginTestCase(CMSApiTestCase):
         self.assertIn('inlines', data['children'][2]['children'][0])
         self.assertIn('slides', data['children'][2]['children'][0]['inlines'])
         self.assertEqual(len(data['children'][2]['children'][0]['inlines']['slides']), 2)
+
+    def test_plugin_mapping(self):
+        page = create_page('page', 'page.html', 'en', published=True)
+        placeholder = page.placeholders.get(slot='content')
+        image = Image.objects.create(file=SimpleUploadedFile("UPPERCASE.jpg", b"content"))
+        plugin = add_plugin(placeholder, "FilerImagePlugin", "en", image=image)
+        url = reverse('api:plugin-detail', kwargs={'pk': plugin.id})
+        response = self.client.get(url, format='json')
+        data = response.data
+        self.assertIsNotNone(data['plugin_data']['image'])
+        self.assertTrue(isinstance(data['plugin_data']['image'], dict))
+        self.assertEqual(data['plugin_data']['image']['file'], image.url)

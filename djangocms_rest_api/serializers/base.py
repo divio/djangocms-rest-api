@@ -133,12 +133,22 @@ class BasePluginSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def get_serializer(instance, plugin=None, model=None, **kwargs):
+        """
+
+        :param instance: model instance or queryset
+        :param plugin: plugin instance that is used to get serializer for
+        :param model: plugin model we build serializer for
+        :param kwargs: kwargs like many and other
+        :return:
+        """
         assert plugin or model, 'plugin or model should be provided'
         serializer_class = None
         if plugin:
             serializer_class = serializer_class_mapping.get(type(plugin))
         if not serializer_class:
             serializer_class = modelserializer_factory(model)
+        if 'read_only' not in kwargs:
+            kwargs['read_only'] = True
         return serializer_class(instance, **kwargs)
 
     def get_plugin_data(self, obj):
