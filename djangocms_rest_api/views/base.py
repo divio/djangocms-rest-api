@@ -6,7 +6,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from rest_framework import viewsets
 
 from djangocms_rest_api.serializers import (
-    PageSerializer, PlaceHolderSerializer, BasePluginSerializer
+    PageSerializer, PlaceHolderSerializer, BasePluginSerializer, get_serializer, get_serializer_class
 )
 from djangocms_rest_api.views.utils import QuerysetMixin
 
@@ -38,6 +38,20 @@ class PlaceHolderViewSet(viewsets.ReadOnlyModelViewSet):
 class PluginViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BasePluginSerializer
     queryset = CMSPlugin.objects.all()
+
+    def get_object(self):
+        obj = super(PluginViewSet, self).get_object()
+        instance, plugin = obj.get_plugin_instance()
+        return instance
+
+    def get_serializer_class(self):
+        # TODO: decide if we need custom serializer here
+        if self.action == 'retrieve':
+            obj = self.get_object()
+            # Do not use model here, since it replace base serializer with quire limited created from model
+            return get_serializer_class(plugin=obj.get_plugin_class())
+        return super(PluginViewSet, self).get_serializer_class()
+
 
 
 
