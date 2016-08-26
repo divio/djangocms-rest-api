@@ -2,14 +2,16 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from collections import OrderedDict
-
-from classytags.utils import flatten_context
 from cms.models import Page, Placeholder, CMSPlugin
 from cms.utils.plugins import build_plugin_tree, downcast_plugins
+from django.db import models
 from django.core.urlresolvers import reverse
 from rest_framework import serializers
 from rest_framework.serializers import ListSerializer
 from djangocms_rest_api.serializers.utils import RequestSerializer
+from djangocms_rest_api.serializers.mapping import serializer_class_mapping
+
+serializer_cache = {}
 
 
 class PageSerializer(RequestSerializer, serializers.ModelSerializer):
@@ -70,36 +72,29 @@ class PageSerializer(RequestSerializer, serializers.ModelSerializer):
         return ListSerializer(*args, **kwargs)
 
 
-# TODO: replace with better implementation
-def modelserializer_factory(mdl, fields=None, **kwargs):
+# TODO: decide if we need this
+class PluginListSerializer(ListSerializer):
+    """
+    Custom ListSerializer supposed to make possible to use custom serializer for plugins list
+    """
 
-    def _get_declared_fields(attrs):
-        fields = [(field_name, attrs.pop(field_name))
-                  for field_name, obj in list(attrs.items())
-                  if isinstance(obj, serializers.Field)]
-        fields.sort(key=lambda x: x[1]._creation_counter)
-        return OrderedDict(fields)
+    def update(self, instance, validated_data):
+        raise NotImplementedError('Readonly for now')
 
-    class Base(object):
-        pass
+    def to_representation(self, data):
 
-    Base._declared_fields = _get_declared_fields(kwargs)
+        iterable = data.all() if isinstance(data, models.Manager) else data
+        resp = []
+        for item in iterable:
+            instance, plugin = item.get_plugin_instance()
+            serializer = get_serializer(instance, plugin=plugin)
+            resp.append(serializer.data)
 
-    class SerializerClass(Base, serializers.ModelSerializer):
-        class Meta:
-            model = mdl
-
-        if fields:
-            setattr(Meta, "fields", fields)
-
-    return SerializerClass
+        return resp
 
 
-# TODO: add custom serializers for base plugins and use them
-# TODO: add ability to set custom serializers for plugins
-# TODO: cache dynamic serializers and reuse them instead of generation each time
 # TODO: Check image plugin data serializer
-# TODO: decide if we need to return url for images with domain name or not
+# TODO: decide if we need to return url for images with domain name or not, cdn?
 class BasePluginSerializer(serializers.ModelSerializer):
 
     plugin_data = serializers.SerializerMethodField()
@@ -108,19 +103,29 @@ class BasePluginSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CMSPlugin
-        fields = ['id', 'placeholder', 'parent', 'position', 'language', 'plugin_type', 'creation_date', 'changed_date',
-                  'plugin_data', 'inlines', 'children']
+        list_serializer_class = PluginListSerializer
+        fields = [
+            'id', 'placeholder', 'parent', 'position', 'language', 'plugin_type', 'creation_date', 'changed_date',
+            'plugin_data', 'inlines', 'children']
 
     def get_plugin_data(self, obj):
 
         instance, plugin = obj.get_plugin_instance()
         model = getattr(plugin, 'model', None)
         if model:
-            serializer = modelserializer_factory(getattr(plugin, 'model', None))(instance)
+            serializer = get_serializer(
+                instance, model=getattr(plugin, 'model', None), plugin=plugin, context=self.context)
             return serializer.data
         return {}
 
     def get_inlines(self, obj):
+        """
+        Some plugin can store data in related models
+        This method supposed to fetch data from database for all inline models listed in inlines parameter of plugin
+        prepare and return together with parent object
+        :param obj:
+        :return:
+        """
         instance, plugin = obj.get_plugin_instance()
         inlines = getattr(plugin, 'inlines', [])
         data = {}
@@ -128,12 +133,20 @@ class BasePluginSerializer(serializers.ModelSerializer):
             for related_object in instance._meta.related_objects:
                 if getattr(related_object, 'related_model', None) == inline.model:
                     name = related_object.name
-                    serializer = modelserializer_factory(inline.model)(getattr(instance, name).all(), many=True)
+                    serializer = get_serializer(
+                        getattr(instance, name).all(), model=inline.model, many=True, context=self.context)
                     data[name] = serializer.data
                     break
         return data
 
     def get_children(self, obj):
+        """
+        Some plugins can contain children
+        This method supposed to get children and
+        prepare and return together with parent object
+        :param obj:
+        :return:
+        """
         data = []
         instance, plugin = obj.get_plugin_instance()
         if not(getattr(plugin, 'allow_children', False) and getattr(plugin, 'child_classes', None)):
@@ -143,15 +156,18 @@ class BasePluginSerializer(serializers.ModelSerializer):
         children = downcast_plugins(children)
         children[0].parent_id = None
         children = build_plugin_tree(children)
+
+        def get_plugin_data(child_plugin):
+            serializer = get_serializer(child_plugin, model=child_plugin._meta.model, context=self.context)
+            plugin_data = serializer.data
+            plugin_data['inlines'] = self.get_inlines(child_plugin)
+            if child_plugin.child_plugin_instances:
+                plugin_data['children'] = []
+                for plug in child_plugin.child_plugin_instances:
+                    plugin_data['children'].append(get_plugin_data(plug))
+            return plugin_data
         for child in children[0].child_plugin_instances:
-            def get_plugin_data(child_plugin):
-                serializer = modelserializer_factory(child_plugin._meta.model)(child_plugin)
-                plugin_data = serializer.data
-                if child_plugin.child_plugin_instances:
-                    plugin_data['children'] = []
-                    for plug in child_plugin.child_plugin_instances:
-                        plugin_data['children'].append(get_plugin_data(plug))
-                return plugin_data
+
             data.append(get_plugin_data(child))
         return data
 
@@ -174,3 +190,75 @@ class PlaceHolderSerializer(RequestSerializer, serializers.ModelSerializer):
 
     def get_plugins(self, obj):
         return [plugin.id for plugin in obj.get_plugins(self.language)]
+
+
+def modelserializer_factory(model, serializer=serializers.ModelSerializer, fields=None, exclude=None, **kwargs):
+    """
+    Generate serializer basing on django's modelform_factory
+    :param model: model we create serializer for
+    :param serializer: base serializer class
+    :param fields: list of fields to include in serializer
+    :param exclude: list of fields to exclude from serializer
+    :param kwargs: fields mapping
+    :return:
+    """
+
+    # TODO: decide if we need cache and what to do with parameters tha can be different
+    serializer_class = serializer_cache.get(model, None)
+
+    if serializer_class:
+        return serializer_class
+
+    def _get_declared_fields(attrs):
+        fields = [(field_name, attrs.pop(field_name))
+                  for field_name, obj in list(attrs.items())
+                  if isinstance(obj, serializers.Field)]
+        fields.sort(key=lambda x: x[1]._creation_counter)
+        return OrderedDict(fields)
+
+    meta_attrs = {'model': model}
+    if fields is not None:
+        meta_attrs['fields'] = fields
+    if exclude is not None:
+        meta_attrs['exclude'] = exclude
+
+    parent = (object, )
+    Meta = type(str('Meta'), parent, meta_attrs)
+    class_name = model.__name__ + str('Serializer')
+
+    serializer_class_attrs = {
+        'Meta': Meta,
+        '_get_declared_fields': _get_declared_fields(kwargs),
+    }
+    serializer_class = type(serializer)(class_name, (serializer,), serializer_class_attrs)
+    serializer_cache[model] = serializer_class
+    return serializer_class
+
+
+def get_serializer_class(plugin=None, model=None):
+    serializer_class = None
+    if plugin:
+        serializer_class = getattr(plugin, 'serializer_class', None)
+        if not serializer_class:
+            serializer_class = serializer_class_mapping.get(type(plugin))
+
+    if not serializer_class:
+        if not model:
+            serializer_class = BasePluginSerializer
+        else:
+            serializer_class = modelserializer_factory(model)
+    return serializer_class
+
+
+def get_serializer(instance, plugin=None, model=None, *args, **kwargs):
+    """
+    :param instance: model instance or queryset
+    :param plugin: plugin instance that is used to get serializer for
+    :param model: plugin model we build serializer for
+    :param kwargs: kwargs like many and other
+    :return:
+    """
+    serializer_class = get_serializer_class(plugin=plugin, model=model)
+    if 'read_only' not in kwargs:
+        kwargs['read_only'] = True
+    return serializer_class(instance, *args, **kwargs)

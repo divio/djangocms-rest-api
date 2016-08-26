@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib import admin
 
 from plugins.models import Slide, Slider
+from plugins.serializers import SliderWithInlinesPluginSerializer
 
 
 class SlideInlineAdmin(admin.StackedInline):
@@ -33,3 +34,25 @@ class SliderWithInlinesPlugin(CMSPluginBase):
         return context
 
 plugin_pool.register_plugin(SliderWithInlinesPlugin)
+
+
+class SliderPlugin(CMSPluginBase):
+    """
+    Plugin with predefined serializer class for API
+    """
+    model = Slider
+    name = 'Slider'
+    render_template = 'plugins/slider.html'
+    inlines = (SlideInlineAdmin,)
+    serializer_class = SliderWithInlinesPluginSerializer
+
+    def render(self, context, instance, placeholder):
+        slides = instance.slides.all()
+        context.update({
+            'slides': slides,
+            'instance': instance,
+            'MEDIA_URL': settings.MEDIA_URL
+        })
+        return context
+
+plugin_pool.register_plugin(SliderPlugin)

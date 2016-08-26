@@ -8,6 +8,7 @@ from cms.api import create_page, add_plugin
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from filer.models import Image
 from rest_framework.test import APIClient
 
 from plugins.models import Slide
@@ -105,26 +106,15 @@ class PluginTestCase(CMSApiTestCase):
         plugin = add_plugin(placeholder, 'SliderWithInlinesPlugin', 'en', name='Slider')
         instance, plugin_model = plugin.get_plugin_instance()
 
-        image_path = os.path.join(os.path.dirname(__file__), 'test-image.jpg')
-        image1 = SimpleUploadedFile(
-            name='test_image.jpg', content=open(image_path, 'rb').read(), content_type='image/jpeg')
-        image2 = SimpleUploadedFile(
-            name='test_image.jpg', content=open(image_path, 'rb').read(), content_type='image/jpeg')
+        image1 = SimpleUploadedFile("image.jpg", b"content")
+        image2 = SimpleUploadedFile("image.jpg", b"content")
         slide_1 = Slide.objects.create(title='slide 1', image=image1, slider=instance)
         slide_2 = Slide.objects.create(title='slide 2', image=image2, slider=instance)
         url = reverse('api:plugin-detail', kwargs={'pk': plugin.id})
         response = self.client.get(url, format='json')
         self.assertEqual(len(response.data['inlines']), 1)
         self.assertEqual(len(response.data['inlines']['slides']), 2)
-        self.assertEqual(response.data['inlines']['slides'][0]['image'], slide_1.image.url)
-        try:
-            os.remove(slide_1.image.path)
-        except OSError:
-            pass
-        try:
-            os.remove(slide_2.image.path)
-        except OSError:
-            pass
+        self.assertIn(slide_1.image.url, response.data['inlines']['slides'][0]['image'])
 
     def test_plugin_with_children(self):
         page = create_page('page', 'page.html', 'en', published=True)
@@ -145,3 +135,77 @@ class PluginTestCase(CMSApiTestCase):
         self.assertEqual(data['children'][0]['children'][1]['body'], text_plugin_1_2.body)
         self.assertEqual(len(data['children'][1]['children']), 1)
         self.assertEqual(data['children'][1]['children'][0]['body'], text_plugin_2_1.body)
+
+    def test_plugin_with_children_with_inlines(self):
+        page = create_page('page', 'page.html', 'en', published=True)
+        placeholder = page.placeholders.get(slot='content')
+        columns = add_plugin(placeholder, "MultiColumnPlugin", "en")
+        column_1 = add_plugin(placeholder, "ColumnPlugin", "en", target=columns, width='10%')
+        column_2 = add_plugin(placeholder, "ColumnPlugin", "en", target=columns, width='30%')
+        column_3 = add_plugin(placeholder, "ColumnPlugin", "en", target=columns, width='60%')
+        text_plugin_1_1 = add_plugin(placeholder, "TextPlugin", "en", target=column_1, body="I'm the first")
+        text_plugin_1_2 = add_plugin(placeholder, "TextPlugin", "en", target=column_1, body="I'm the second")
+        text_plugin_2_1 = add_plugin(placeholder, "TextPlugin", "en", target=column_2, body="I'm the third")
+
+        plugin = add_plugin(placeholder, 'SliderWithInlinesPlugin', 'en', target=column_3, name='Slider')
+        instance, plugin_model = plugin.get_plugin_instance()
+
+        image1 = SimpleUploadedFile("image.jpg", b"content")
+        image2 = SimpleUploadedFile("image.jpg", b"content")
+        slide_1 = Slide.objects.create(title='slide 1', image=image1, slider=instance)
+        slide_2 = Slide.objects.create(title='slide 2', image=image2, slider=instance)
+
+        url = reverse('api:plugin-detail', kwargs={'pk': columns.id})
+        response = self.client.get(url, format='json')
+        data = response.data
+        self.assertIn('children', data)
+        self.assertEqual(len(data['children']), 3)
+        self.assertEqual(len(data['children'][0]['children']), 2)
+        self.assertEqual(data['children'][0]['children'][0]['body'], text_plugin_1_1.body)
+        self.assertEqual(data['children'][0]['children'][1]['body'], text_plugin_1_2.body)
+        self.assertEqual(len(data['children'][1]['children']), 1)
+        self.assertEqual(data['children'][1]['children'][0]['body'], text_plugin_2_1.body)
+        self.assertIn('inlines', data['children'][2]['children'][0])
+        self.assertIn('slides', data['children'][2]['children'][0]['inlines'])
+        self.assertEqual(len(data['children'][2]['children'][0]['inlines']['slides']), 2)
+
+    def test_plugin_mapping(self):
+        page = create_page('page', 'page.html', 'en', published=True)
+        placeholder = page.placeholders.get(slot='content')
+        image = Image.objects.create(file=SimpleUploadedFile("image.jpg", b"content"))
+        plugin = add_plugin(placeholder, "FilerImagePlugin", "en", image=image)
+        url = reverse('api:plugin-detail', kwargs={'pk': plugin.id})
+        response = self.client.get(url, format='json')
+        data = response.data
+        self.assertIsNotNone(data['plugin_data']['image'])
+        self.assertTrue(isinstance(data['plugin_data']['image'], dict))
+        # TODO: check urls
+        self.assertIn(image.url, data['plugin_data']['image']['file'])
+
+    def test_custom_serializer_list(self):
+        page = create_page('page', 'page.html', 'en', published=True)
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, 'SliderPlugin', 'en', name='Slider')
+        instance, plugin_model = plugin.get_plugin_instance()
+
+        image = SimpleUploadedFile("image.jpg", b"content")
+        image = SimpleUploadedFile("image.jpg", b"content")
+        slide_1 = Slide.objects.create(title='slide 1', image=image, slider=instance)
+        slide_2 = Slide.objects.create(title='slide 2', image=image, slider=instance)
+        url = reverse('api:plugin-list')
+        response = self.client.get(url, format='json')
+        self.assertIn('test', response.data[0])
+
+    def test_custom_serializer_detail(self):
+        page = create_page('page', 'page.html', 'en', published=True)
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, 'SliderPlugin', 'en', name='Slider')
+        instance, plugin_model = plugin.get_plugin_instance()
+
+        image = SimpleUploadedFile("image.jpg", b"content")
+        image = SimpleUploadedFile("image.jpg", b"content")
+        slide_1 = Slide.objects.create(title='slide 1', image=image, slider=instance)
+        slide_2 = Slide.objects.create(title='slide 2', image=image, slider=instance)
+        url = reverse('api:plugin-detail', kwargs={'pk': plugin.id})
+        response = self.client.get(url, format='json')
+        self.assertIn('test', response.data)
