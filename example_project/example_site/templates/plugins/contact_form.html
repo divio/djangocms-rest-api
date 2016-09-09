@@ -1,0 +1,9 @@
+<form method="post" action="">
+    {% csrf_token %}
+    <h3>{{ instance.form_name }}</h3>
+    <table class="table">
+
+    {{ form.as_table }}
+    </table>
+    <input type="submit" value="Send">
+</form>

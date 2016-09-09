@@ -42,3 +42,24 @@ class Slide(models.Model):
 
     def __str__(self):
         return '%s %s' % (self.title, self.slider.name)
+
+
+@python_2_unicode_compatible
+class Contact(CMSPlugin):
+    form_name = models.CharField(verbose_name=_('form name'), max_length=255)
+
+    def __str__(self):
+        return self.form_name
+
+
+@python_2_unicode_compatible
+class ContactRequest(models.Model):
+    """
+    Model which stores contact request and messages
+    """
+    sender = models.EmailField(verbose_name=_('email'))
+    subject = models.CharField(verbose_name=_('subject'), max_length=255)
+    message = models.TextField(verbose_name=_('message'))
+
+    def __str__(self):
+        return '{} {}'.format(self.sender, self.subject)

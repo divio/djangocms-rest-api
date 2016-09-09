@@ -9,9 +9,10 @@ from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from filer.models import Image
+from rest_framework import status
 from rest_framework.test import APIClient
 
-from plugins.models import Slide
+from plugins.models import Slide, ContactRequest
 from tests.utils import CMSApiTestCase
 
 
@@ -209,3 +210,35 @@ class PluginTestCase(CMSApiTestCase):
         url = reverse('api:plugin-detail', kwargs={'pk': plugin.id})
         response = self.client.get(url, format='json')
         self.assertIn('test', response.data)
+
+    def test_contact_plugin_empty_data_submission(self):
+        page = create_page('page', 'page.html', 'en', published=True)
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, 'ContactFormPlugin', 'en', form_name='contact us')
+        url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('message', response.data)
+        self.assertEqual(response.data['message'][0], 'This field is required.')
+        self.assertIn('subject', response.data)
+        self.assertEqual(response.data['subject'][0], 'This field is required.')
+        self.assertIn('sender', response.data)
+        self.assertEqual(response.data['sender'][0], 'This field is required.')
+
+    def test_contact_plugin_data_submission(self):
+        page = create_page('page', 'page.html', 'en', published=True)
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, 'ContactFormPlugin', 'en', form_name='contact us')
+        url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
+        data = {
+            'message': 'message text',
+            'subject': 'subject',
+            'sender': 'sender@example.com'
+        }
+        self.assertEqual(ContactRequest.objects.count(), 0)
+        response = self.client.post(url, data=data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(ContactRequest.objects.count(), 1)
+        contact_request = ContactRequest.objects.last()
+        self.assertEqual(contact_request.sender, data['sender'])
