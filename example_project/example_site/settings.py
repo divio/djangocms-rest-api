@@ -152,7 +152,7 @@ INSTALLED_APPS = [
     'djangocms_googlemap',
     'djangocms_inherit',
     'djangocms_link',
-    'reversion',
+    # 'reversion',
     'example_site',
     'plugins',
     'rest_framework',
@@ -213,7 +213,7 @@ DATABASES = {
 }
 
 MIGRATION_MODULES = {
-    
+
 }
 
 THUMBNAIL_PROCESSORS = (
