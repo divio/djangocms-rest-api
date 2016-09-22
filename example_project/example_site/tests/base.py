@@ -284,3 +284,26 @@ class PluginTestCase(CMSApiTestCase):
         self.assertEqual(mail.outbox[0].extra_headers['Reply-To'], data['email'])
         self.assertEqual(mail.outbox[0].subject, '[contact us] ' + data['subject'])
         self.assertIn(data['content'], mail.outbox[0].body)
+
+    def test_contact_plugin3_data_submission(self):
+        """
+        Test for plugin from https://github.com/maccesch/cmsplugin-contact
+        :return:
+        """
+        page = create_page('page', 'page.html', 'en', published=True)
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, 'ContactPlugin', 'en', form_name='contact us')
+        url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
+        data = {
+            'content': 'message text',
+            'subject': 'message subject',
+            'email': 'sender@example.com'
+        }
+        self.assertEqual(len(mail.outbox), 0)
+        response = self.client.post(url, data=data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].extra_headers['Reply-To'], data['email'])
+        self.assertEqual(mail.outbox[0].subject, '[contact us] ' + data['subject'])
+        self.assertIn(data['content'], mail.outbox[0].body)

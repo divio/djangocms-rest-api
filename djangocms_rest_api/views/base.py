@@ -48,6 +48,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_object(self):
         obj = super(PluginViewSet, self).get_object()
+        self.obj = obj
         # TODO: check if plugin available for anonymous or current user
         self.instance, self.plugin = obj.get_plugin_instance()
         # Not sure we ned this permissions for retrieve data actions
@@ -69,7 +70,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
         return super(PluginViewSet, self).get_serializer_class()
 
     def get_data_serializer_class(self):
-        return data_serializer_class_mapping.get(self.plugin, None)
+        return data_serializer_class_mapping.get(self.plugin.__class__, None)
 
     def get_data_serializer_context(self):
         context = self.get_serializer_context()
