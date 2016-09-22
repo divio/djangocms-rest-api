@@ -153,7 +153,7 @@ class BasePluginSerializer(serializers.ModelSerializer):
             return data
         children = obj.get_descendants().order_by('placeholder', 'path')
         children = [obj] + list(children)
-        children = downcast_plugins(children)
+        children = list(downcast_plugins(children))
         children[0].parent_id = None
         children = build_plugin_tree(children)
 

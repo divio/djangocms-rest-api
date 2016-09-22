@@ -15,6 +15,7 @@ from djangocms_rest_api.serializers import (
     PageSerializer, PlaceHolderSerializer, BasePluginSerializer, get_serializer, get_serializer_class
 )
 from djangocms_rest_api.views.utils import QuerysetMixin
+from djangocms_rest_api.serializers.mapping import data_serializer_class_mapping
 
 
 class PageViewSet(QuerysetMixin, viewsets.ReadOnlyModelViewSet):
@@ -67,13 +68,25 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             return get_serializer_class(plugin=obj.get_plugin_class())
         return super(PluginViewSet, self).get_serializer_class()
 
+    def get_data_serializer_class(self):
+        return data_serializer_class_mapping.get(self.plugin, None)
+
+    def get_data_serializer_context(self):
+        context = self.get_serializer_context()
+        assert self.instance, 'get object should be called before this method'
+        assert self.plugin, 'get object should be called before this method'
+        context['plugin'] = self.plugin
+        context['plugin_instance'] = self.instance
+        return context
+
     @detail_route(methods=['post', 'put', 'patch'])
     def submit_data(self, request, pk=None, **kwargs):
         obj = self.get_object()
-        serializer_class = self.plugin.data_serializer_class
+        serializer_class = getattr(self.plugin, 'data_serializer_class', self.get_data_serializer_class())
+
         assert serializer_class, 'data serializer class should be set'
         if request.method == 'POST':
-            serializer = serializer_class(data=request.data)
+            serializer = serializer_class(data=request.data, context=self.get_data_serializer_context())
         else:
             raise PermissionDenied('method is not allowed for now')
         if serializer.is_valid():
@@ -81,7 +94,8 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
                 self.instance.process_data(request, self.instance, serializer)
             else:
                 # TODO: Decide if we need to save data by default if process_data method was not implemented
-                # point this in documentation
+                # point this in documentation.
+                # Save can just do any action
                 serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

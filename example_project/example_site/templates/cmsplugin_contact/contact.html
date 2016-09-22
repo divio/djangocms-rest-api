@@ -1,0 +1,65 @@
+{% load i18n %}
+
+{% if form %}
+	<form action="." method="post">
+        {% for field in form %}
+            {% if field.name != 'recaptcha_challenge_field' and field.name != 'recaptcha_theme' and field.name != 'recaptcha_response_field' and field.name != 'accept_terms' %}
+                <p{% if field.errors %} class="error"{% endif %}>
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.errors %}
+                        {% for error in field.errors %}
+                            <span class="error_msg">{{ error }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </p>
+            {% endif %}
+        {% endfor %}
+		{% if form.recaptcha_challenge_field %}
+			<div{% if form.recaptcha_response_field.errors %} class="error"{% endif %}>
+				{{ form.recaptcha_challenge_field }}
+				{% if form.recaptcha_theme == "custom" %}
+					<div id="recaptcha_widget" style="display:none">
+					
+					<div id="recaptcha_image"></div>
+					<span class="recaptcha_only_if_incorrect_sol error_msg">{% trans "Incorrect please try again" %}</span>
+					
+					<label>
+						<span class="recaptcha_only_if_image">{% trans "Enter the words above:" %}</span>
+						<span class="recaptcha_only_if_audio">{% trans "Enter the numbers you hear:" %}</span>
+					</label>
+					
+					<input type="text" id="recaptcha_response_field" name="recaptcha_response_field" />
+					
+					<div><a href="javascript:Recaptcha.reload()">{% trans "Get another CAPTCHA" %}</a></div>
+					<div class="recaptcha_only_if_image"><a href="javascript:Recaptcha.switch_type('audio')">{% trans "Get an audio CAPTCHA" %}</a></div>
+					<div class="recaptcha_only_if_audio"><a href="javascript:Recaptcha.switch_type('image')">{% trans "Get an image CAPTCHA" %}</a></div>
+					
+					<div><a href="javascript:Recaptcha.showhelp()">{% trans "Help" %}</a>
+					
+					</div>
+				{% endif %}
+			
+				{% if form.recaptcha_response_field.label %}<label class="contact_field">{{ form.recaptcha_response_field.label }}</label>{% endif %}
+				{{ form.recaptcha_response_field }}
+			{% if form.recaptcha_response_field.errors %}
+				{% for error in form.recaptcha_response_field.errors %}
+					<span class="error_msg">{% trans error %}</span>
+				{% endfor %}
+			{% endif %}
+			</div>
+		{% endif %}
+		
+		{% if form.accept_terms %}
+			{{ form.accept_terms }}
+		{% endif %}
+		<p>
+			<input type="submit"{% if contact.submit %} value="{{ contact.submit }}"{% endif %} />
+		</p>
+		
+		{% csrf_token %}
+	</form>
+
+{% else %}
+	{{ contact.thanks|safe }}
+{% endif %}

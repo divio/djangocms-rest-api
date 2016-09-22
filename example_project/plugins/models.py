@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
-from six import python_2_unicode_compatible
 from cms.models import CMSPlugin
 from django.db import models
+from six import python_2_unicode_compatible
+from cmsplugin_contact.models import BaseContact
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -63,3 +64,9 @@ class ContactRequest(models.Model):
 
     def __str__(self):
         return '{} {}'.format(self.sender, self.subject)
+
+
+class CustomContact(BaseContact):
+    custom_label = models.CharField(
+        _('Custom sender label'),
+        default=_('Your custom value'), max_length=20)

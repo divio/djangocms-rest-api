@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
-import random
-
-from cms.plugin_pool import plugin_pool
 from cms.plugin_base import CMSPluginBase
+from cms.plugin_pool import plugin_pool
+from cmsplugin_contact.cms_plugins import ContactPlugin
 from django.conf import settings
 from django.contrib import admin
-from sekizai.context import SekizaiContext
+from django.utils.translation import ugettext_lazy as _
 
-from mixins import RESTPluginMixin
+from djangocms_rest_api.mixins import RESTPluginMixin
 from plugins.forms import ContactForm
-from plugins.models import Slide, Slider, ContactRequest, Contact
+from plugins.models import CustomContact
+from plugins.models import Slide, Slider, Contact
 from plugins.serializers import SliderWithInlinesPluginSerializer, ContactRequestSerializer
+from djangocms_rest_api.serializers.contactplugin import ContactPluginDataSerializer
 
 
 class SlideInlineAdmin(admin.StackedInline):
@@ -75,7 +76,7 @@ class ContactFormPlugin(RESTPluginMixin, CMSPluginBase):
         if request.method == "POST":
             form = ContactForm(request.POST)
             if form.is_valid():
-                self.process_post(request, instance, form)
+                self.process_data(request, instance, form)
                 form = ContactForm()
 
         else:
@@ -91,3 +92,27 @@ class ContactFormPlugin(RESTPluginMixin, CMSPluginBase):
         serializer.save()
 
 plugin_pool.register_plugin(ContactFormPlugin)
+
+
+class CustomContactPlugin(ContactPlugin):
+    name = _("Custom Contact Form")
+
+    model = CustomContact
+
+    data_serializer_class = ContactPluginDataSerializer
+
+    fieldsets = (
+        (None, {
+            'fields': ('form_name', 'form_layout', 'site_email', 'submit', 'custom_label'),
+        }),
+        (_('Redirection'), {
+            'fields': ('thanks', 'redirect_url'),
+        }),
+        (_('Spam Protection'), {
+            'fields': ('spam_protection_method', 'akismet_api_key',
+                       'recaptcha_public_key', 'recaptcha_private_key', 'recaptcha_theme')
+        })
+    )
+
+
+plugin_pool.register_plugin(CustomContactPlugin)
