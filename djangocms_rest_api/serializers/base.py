@@ -153,9 +153,9 @@ class BasePluginSerializer(serializers.ModelSerializer):
             return data
         children = obj.get_descendants().order_by('placeholder', 'path')
         children = [obj] + list(children)
-        children = downcast_plugins(children)
+        children = list(downcast_plugins(children))
         children[0].parent_id = None
-        children = build_plugin_tree(children)
+        children = list(build_plugin_tree(children))
 
         def get_plugin_data(child_plugin):
             serializer = get_serializer(child_plugin, model=child_plugin._meta.model, context=self.context)
@@ -166,9 +166,10 @@ class BasePluginSerializer(serializers.ModelSerializer):
                 for plug in child_plugin.child_plugin_instances:
                     plugin_data['children'].append(get_plugin_data(plug))
             return plugin_data
-        for child in children[0].child_plugin_instances:
 
-            data.append(get_plugin_data(child))
+        if children[0].child_plugin_instances:
+            for child in children[0].child_plugin_instances:
+                data.append(get_plugin_data(child))
         return data
 
 
