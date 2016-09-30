@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 import os
 import re
-import sys
+from setuptools import find_packages
+
 
 try:
     from setuptools import setup
@@ -24,14 +25,14 @@ version = get_version('djangocms_rest_api', '__init__.py')
 setup(
     name='djangocms-rest-api',
     version=version,
-    packages=['djangocms_rest_api', ],
+    packages=find_packages(),
     description='API for django cms.',
     long_description=open('README.rst').read(),
     author='SteelKiwi Development, Divio',
     author_email='getmansky@steelkiwi.com',
     include_package_data=True,
     install_requires=[
-        'djangorestframework==3.4.0',
+        'djangorestframework>=3.4,<3.5',
     ],
     license='MIT',
     url='https://github.com/divio/djangocms-rest-api',

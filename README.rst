@@ -23,7 +23,7 @@ Installation
 
     urlpatterns = [
         ...
-        url(r'^api/', include('djangocms_rest_api.urls')),
+        url(r'^api/', include('djangocms_rest_api.urls', namespace='api')),
         ...
     ]
 
