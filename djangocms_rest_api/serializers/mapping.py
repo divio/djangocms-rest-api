@@ -7,10 +7,16 @@ from djangocms_rest_api.serializers.contactplugin import ContactPluginDataSerial
 
 from djangocms_rest_api.serializers.filerimageplugin_serializer import FilerImagePluginSerializer
 
+from djangocms_forms.cms_plugins import FormPlugin
+from djangocms_rest_api.serializers.formplugin import FormPluginDataSerializer
+
+
 serializer_class_mapping = {
     FilerImagePlugin: FilerImagePluginSerializer,
 }
 
 data_serializer_class_mapping = {
-    ContactPlugin: ContactPluginDataSerializer
+    ContactPlugin: ContactPluginDataSerializer,
+    # TODO: remove and add it in other way later
+    FormPlugin: FormPluginDataSerializer,
 }

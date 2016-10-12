@@ -17,7 +17,6 @@ from plugins.models import Slide, ContactRequest
 from tests.utils import CMSApiTestCase
 
 
-
 class PagesTestCase(CMSApiTestCase):
     client_class = APIClient
 
@@ -280,7 +279,7 @@ class PluginTestCase(CMSApiTestCase):
         response = self.client.post(url, data=data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox), 1, )
         self.assertEqual(mail.outbox[0].extra_headers['Reply-To'], data['email'])
         self.assertEqual(mail.outbox[0].subject, '[contact us] ' + data['subject'])
         self.assertIn(data['content'], mail.outbox[0].body)

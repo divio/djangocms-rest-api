@@ -3,6 +3,9 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from itertools import chain
 
+from rest_framework.decorators import parser_classes
+from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
+
 from cms.models import Page, Placeholder, CMSPlugin
 from django.contrib.sites.shortcuts import get_current_site
 from rest_framework import status
@@ -33,6 +36,7 @@ class PageViewSet(QuerysetMixin, viewsets.ReadOnlyModelViewSet):
 class PlaceHolderViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PlaceHolderSerializer
     queryset = Placeholder.objects.all()
+    parser_classes = (JSONParser, FormParser, MultiPartParser)
 
     def get_queryset(self):
         site = get_current_site(self.request)
@@ -45,6 +49,9 @@ class PlaceHolderViewSet(viewsets.ReadOnlyModelViewSet):
 class PluginViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BasePluginSerializer
     queryset = CMSPlugin.objects.all()
+
+    def dispatch(self, request, *args, **kwargs):
+        return super(PluginViewSet, self).dispatch(request, *args, **kwargs)
 
     def get_object(self):
         obj = super(PluginViewSet, self).get_object()
@@ -82,12 +89,14 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
 
     @detail_route(methods=['post', 'put', 'patch'])
     def submit_data(self, request, pk=None, **kwargs):
+        # TODO: need ability to handle nested pks
         obj = self.get_object()
         serializer_class = getattr(self.plugin, 'data_serializer_class', self.get_data_serializer_class())
 
         assert serializer_class, 'data serializer class should be set'
         if request.method == 'POST':
-            serializer = serializer_class(data=request.data, context=self.get_data_serializer_context())
+            serializer = serializer_class(
+                data=request.data, context=self.get_data_serializer_context())
         else:
             raise PermissionDenied('method is not allowed for now')
         if serializer.is_valid():

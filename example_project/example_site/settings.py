@@ -155,6 +155,7 @@ INSTALLED_APPS = [
     'djangocms_link',
     # 'reversion',
     'example_site',
+    'djangocms_forms',
     'cmsplugin_contact',
     'plugins',
     'rest_framework',
