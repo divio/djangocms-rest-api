@@ -8,8 +8,9 @@ from django.db import models
 from django.core.urlresolvers import reverse
 from rest_framework import serializers
 from rest_framework.serializers import ListSerializer
-from djangocms_rest_api.serializers.utils import RequestSerializer
-from djangocms_rest_api.serializers.mapping import serializer_class_mapping
+
+from djangocms_rest_api.serializers.utils import RequestSerializer, ClassLookupDict
+from djangocms_rest_api.serializers.mapping import serializer_class_mapping, data_serializer_class_mapping
 
 serializer_cache = {}
 
@@ -241,13 +242,20 @@ def get_serializer_class(plugin=None, model=None):
     if plugin:
         serializer_class = getattr(plugin, 'serializer_class', None)
         if not serializer_class:
-            serializer_class = serializer_class_mapping.get(type(plugin))
+            serializer_class = ClassLookupDict(serializer_class_mapping).get(type(plugin))
 
     if not serializer_class:
         if not model:
             serializer_class = BasePluginSerializer
         else:
             serializer_class = modelserializer_factory(model)
+    return serializer_class
+
+
+def get_data_serializer_class(plugin):
+    serializer_class = getattr(plugin, 'data_serializer_class', None)
+    if serializer_class is None:
+        serializer_class = ClassLookupDict(data_serializer_class_mapping).get(plugin.__class__)
     return serializer_class
 
 

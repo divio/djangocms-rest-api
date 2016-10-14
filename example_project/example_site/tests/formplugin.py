@@ -170,7 +170,6 @@ class FormPluginTestCase(CMSApiTestCase):
                 'gender': 'm'
             }
             response = self.client.post(url, data=data, format='multipart')
-        print(response.data)
         self.assertIn('text', response.data)
         self.assertIn('gender', response.data)
         self.assertEqual(response.data['text'], 'text')

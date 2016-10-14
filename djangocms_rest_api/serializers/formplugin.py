@@ -15,8 +15,6 @@ from djangocms_forms.models import FormSubmission
 from ipware.ip import get_ip
 from rest_framework.exceptions import ValidationError
 from unidecode import unidecode
-
-assert 'djangocms_forms' in settings.INSTALLED_APPS, 'djangocms_forms should be installed to use this plugin'
 from djangocms_forms.forms import FormBuilder
 from rest_framework import serializers
 from rest_framework.fields import empty

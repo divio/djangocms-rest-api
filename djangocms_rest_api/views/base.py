@@ -15,7 +15,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from djangocms_rest_api.serializers import (
-    PageSerializer, PlaceHolderSerializer, BasePluginSerializer, get_serializer, get_serializer_class
+    PageSerializer, PlaceHolderSerializer, BasePluginSerializer, get_serializer, get_serializer_class, get_data_serializer_class
 )
 from djangocms_rest_api.views.utils import QuerysetMixin
 from djangocms_rest_api.serializers.mapping import data_serializer_class_mapping
@@ -76,9 +76,6 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
             return get_serializer_class(plugin=obj.get_plugin_class())
         return super(PluginViewSet, self).get_serializer_class()
 
-    def get_data_serializer_class(self):
-        return data_serializer_class_mapping.get(self.plugin.__class__, None)
-
     def get_data_serializer_context(self):
         context = self.get_serializer_context()
         assert self.instance, 'get object should be called before this method'
@@ -91,7 +88,7 @@ class PluginViewSet(viewsets.ReadOnlyModelViewSet):
     def submit_data(self, request, pk=None, **kwargs):
         # TODO: need ability to handle nested pks
         obj = self.get_object()
-        serializer_class = getattr(self.plugin, 'data_serializer_class', self.get_data_serializer_class())
+        serializer_class = get_data_serializer_class(self.plugin)
 
         assert serializer_class, 'data serializer class should be set'
         if request.method == 'POST':
