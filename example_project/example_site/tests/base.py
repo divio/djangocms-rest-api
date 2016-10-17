@@ -8,10 +8,12 @@ from cms.api import create_page, add_plugin
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core import mail
 from filer.models import Image
+from rest_framework import status
 from rest_framework.test import APIClient
 
-from plugins.models import Slide
+from plugins.models import Slide, ContactRequest
 from tests.utils import CMSApiTestCase
 
 

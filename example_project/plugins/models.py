@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
-from six import python_2_unicode_compatible
 from cms.models import CMSPlugin
 from django.db import models
+from six import python_2_unicode_compatible
+from cmsplugin_contact.models import BaseContact
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -42,3 +43,30 @@ class Slide(models.Model):
 
     def __str__(self):
         return '%s %s' % (self.title, self.slider.name)
+
+
+@python_2_unicode_compatible
+class Contact(CMSPlugin):
+    form_name = models.CharField(verbose_name=_('form name'), max_length=255)
+
+    def __str__(self):
+        return self.form_name
+
+
+@python_2_unicode_compatible
+class ContactRequest(models.Model):
+    """
+    Model which stores contact request and messages
+    """
+    sender = models.EmailField(verbose_name=_('email'))
+    subject = models.CharField(verbose_name=_('subject'), max_length=255)
+    message = models.TextField(verbose_name=_('message'))
+
+    def __str__(self):
+        return '{} {}'.format(self.sender, self.subject)
+
+
+class CustomContact(BaseContact):
+    custom_label = models.CharField(
+        _('Custom sender label'),
+        default=_('Your custom value'), max_length=20)

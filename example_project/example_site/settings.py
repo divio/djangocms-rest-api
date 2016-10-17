@@ -121,7 +121,8 @@ MIDDLEWARE_CLASSES = [
     'cms.middleware.user.CurrentUserMiddleware',
     'cms.middleware.page.CurrentPageMiddleware',
     'cms.middleware.toolbar.ToolbarMiddleware',
-    'cms.middleware.language.LanguageCookieMiddleware'
+    'cms.middleware.language.LanguageCookieMiddleware',
+    'cmsplugin_contact.middleware.ForceResponseMiddleware',
 ]
 
 INSTALLED_APPS = [
@@ -152,8 +153,10 @@ INSTALLED_APPS = [
     'djangocms_googlemap',
     'djangocms_inherit',
     'djangocms_link',
-    'reversion',
+    # 'reversion',
     'example_site',
+    'djangocms_forms',
+    'cmsplugin_contact',
     'plugins',
     'rest_framework',
     'djangocms_rest_api',
@@ -213,7 +216,7 @@ DATABASES = {
 }
 
 MIGRATION_MODULES = {
-    
+    'cmsplugin_contact': 'cmsplugin_contact.migrations_django'
 }
 
 THUMBNAIL_PROCESSORS = (
@@ -222,3 +225,6 @@ THUMBNAIL_PROCESSORS = (
     'filer.thumbnail_processors.scale_and_crop_with_subject_location',
     'easy_thumbnails.processors.filters'
 )
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'admin@example.com'
