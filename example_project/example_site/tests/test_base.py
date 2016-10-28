@@ -14,7 +14,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from plugins.models import Slide, ContactRequest
-from tests.utils import CMSApiTestCase
+from example_site.tests.utils import CMSApiTestCase
 
 
 class PagesTestCase(CMSApiTestCase):
@@ -31,8 +31,8 @@ class PagesTestCase(CMSApiTestCase):
         title_1 = 'page'
         title_2 = 'inner'
         title_3 = 'page 3'
-        page = create_page(title_1, 'page.html', 'en', published=True)
-        page_2 = create_page(title_2, 'page.html', 'en', published=True, parent=page)
+        page = create_page(title_1, 'page.html', 'en', published=True).publisher_public
+        page_2 = create_page(title_2, 'page.html', 'en', published=True, parent=page).publisher_public
         page_3 = create_page(title_3, 'page.html', 'en', published=False)
 
         url = reverse('api:page-list')
@@ -49,8 +49,8 @@ class PagesTestCase(CMSApiTestCase):
         title_1 = 'page'
         title_2 = 'inner'
         title_3 = 'page 3'
-        page = create_page(title_1, 'page.html', 'en', published=True)
-        page_2 = create_page(title_2, 'page.html', 'en', published=True, parent=page)
+        page = create_page(title_1, 'page.html', 'en', published=True).publisher_public
+        page_2 = create_page(title_2, 'page.html', 'en', published=True, parent=page).publisher_public
         page_3 = create_page(title_3, 'page.html', 'en', published=False)
 
         with self.login_user_context(user):
@@ -67,22 +67,32 @@ class PlaceHolderTestCase(CMSApiTestCase):
         """
         Test that placeholder are accessible and contains required info
         """
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         url = reverse('api:placeholder-list')
         response = self.client.get(url, formst='json')
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['slot'], 'content')
-        page2 = create_page('page2', 'feature.html', 'en', published=True)
+        page2 = create_page('page2', 'feature.html', 'en', published=True).publisher_public
         response = self.client.get(url, formst='json')
         self.assertEqual(len(response.data), 3)
         self.assertEqual(response.data[1]['slot'], 'feature')
         self.assertEqual(response.data[2]['slot'], 'content')
 
+    def test_placeholder(self):
+        """
+        Test that placeholder are accessible and contains required info
+        """
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
+        page = page.publisher_public
+        placeholder = page.placeholders.get(slot='content')
+        url = reverse('api:placeholder-detail', kwargs={'pk': placeholder.pk})
+        response = self.client.get(url)
+
 
 class PluginTestCase(CMSApiTestCase):
 
     def test_plugins_list(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin_1 = add_plugin(placeholder, 'TextPlugin', 'en', body='Test content')
         plugin_2 = add_plugin(placeholder, 'TextPlugin', 'en', body='Test content 2')
@@ -93,7 +103,7 @@ class PluginTestCase(CMSApiTestCase):
         self.assertEqual(response.data[1]['plugin_data']['body'], plugin_2.body)
 
     def test_plugin_detail(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin_1 = add_plugin(
             placeholder, 'GoogleMapPlugin', 'en', address="Riedtlistrasse 16", zipcode="8006", city="Zurich", )
@@ -103,7 +113,7 @@ class PluginTestCase(CMSApiTestCase):
         self.assertEqual(response.data['plugin_data']['address'], plugin_1.address)
 
     def test_plugin_with_inlines(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'SliderWithInlinesPlugin', 'en', name='Slider')
         instance, plugin_model = plugin.get_plugin_instance()
@@ -119,7 +129,7 @@ class PluginTestCase(CMSApiTestCase):
         self.assertIn(slide_1.image.url, response.data['inlines']['slides'][0]['image'])
 
     def test_plugin_with_children(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         columns = add_plugin(placeholder, "MultiColumnPlugin", "en")
         column_1 = add_plugin(placeholder, "ColumnPlugin", "en", target=columns, width='10%')
@@ -139,7 +149,7 @@ class PluginTestCase(CMSApiTestCase):
         self.assertEqual(data['children'][1]['children'][0]['body'], text_plugin_2_1.body)
 
     def test_plugin_with_children_with_inlines(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         columns = add_plugin(placeholder, "MultiColumnPlugin", "en")
         column_1 = add_plugin(placeholder, "ColumnPlugin", "en", target=columns, width='10%')
@@ -172,7 +182,7 @@ class PluginTestCase(CMSApiTestCase):
         self.assertEqual(len(data['children'][2]['children'][0]['inlines']['slides']), 2)
 
     def test_plugin_mapping(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         image = Image.objects.create(file=SimpleUploadedFile("image.jpg", b"content"))
         plugin = add_plugin(placeholder, "FilerImagePlugin", "en", image=image)
@@ -185,7 +195,7 @@ class PluginTestCase(CMSApiTestCase):
         self.assertIn(image.url, data['plugin_data']['image']['file'])
 
     def test_custom_serializer_list(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'SliderPlugin', 'en', name='Slider')
         instance, plugin_model = plugin.get_plugin_instance()
@@ -199,7 +209,7 @@ class PluginTestCase(CMSApiTestCase):
         self.assertIn('test', response.data[0])
 
     def test_custom_serializer_detail(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'SliderPlugin', 'en', name='Slider')
         instance, plugin_model = plugin.get_plugin_instance()

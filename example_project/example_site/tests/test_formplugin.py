@@ -13,7 +13,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 
 from plugins.models import Slide, ContactRequest
-from tests.utils import CMSApiTestCase
+from example_site.tests.utils import CMSApiTestCase
 from hamcrest import *
 
 
@@ -24,7 +24,7 @@ class FormPluginTestCase(CMSApiTestCase):
     """
 
     def test_no_data_sent_one_required(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
         instance, plugin_model = plugin.get_plugin_instance()
@@ -42,7 +42,7 @@ class FormPluginTestCase(CMSApiTestCase):
         self.assertEqual(response.data['text1'], ['This field is required.'])
 
     def test_data_sent_ok(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
         instance, plugin_model = plugin.get_plugin_instance()
@@ -63,7 +63,7 @@ class FormPluginTestCase(CMSApiTestCase):
         self.assertEqual(response.data['text_2'], 'text')
 
     def test_email_sent(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin', email_to='admin@example.com')
         instance, plugin_model = plugin.get_plugin_instance()
@@ -86,7 +86,7 @@ class FormPluginTestCase(CMSApiTestCase):
         self.assertIn(data['text_2'], mail.outbox[0].body)
 
     def test_files(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
         instance, plugin_model = plugin.get_plugin_instance()
@@ -108,7 +108,7 @@ class FormPluginTestCase(CMSApiTestCase):
         self.assertIn('test-image', response.data['file'])
 
     def test_email_with_files(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin', email_to='admin@example.com')
         instance, plugin_model = plugin.get_plugin_instance()
@@ -134,7 +134,7 @@ class FormPluginTestCase(CMSApiTestCase):
         self.assertIn('test-image', mail.outbox[0].attachments[0][0])
 
     def test_files_not_supported_type(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
         instance, plugin_model = plugin.get_plugin_instance()
@@ -154,7 +154,7 @@ class FormPluginTestCase(CMSApiTestCase):
         self.assertEqual(response.data['file'][0], 'Sorry, this filetype is not allowed. Allowed filetype: txt')
 
     def test_select(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
         instance, plugin_model = plugin.get_plugin_instance()
@@ -176,7 +176,7 @@ class FormPluginTestCase(CMSApiTestCase):
         self.assertEqual(response.data['gender'], 'm')
 
     def test_select_invalid_choice(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
         instance, plugin_model = plugin.get_plugin_instance()
@@ -196,7 +196,7 @@ class FormPluginTestCase(CMSApiTestCase):
         self.assertEqual(response.data['gender'][0], '"a" is not a valid choice.')
 
     def test_select_not_required(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
         instance, plugin_model = plugin.get_plugin_instance()
@@ -218,7 +218,7 @@ class FormPluginTestCase(CMSApiTestCase):
         self.assertEqual(response.data['text'], 'text')
 
     def test_checkbox_multiple(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
         instance, plugin_model = plugin.get_plugin_instance()

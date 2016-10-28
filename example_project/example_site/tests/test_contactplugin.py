@@ -13,13 +13,13 @@ from rest_framework.test import APIClient
 from rest_framework import status
 
 from plugins.models import Slide, ContactRequest
-from tests.utils import CMSApiTestCase
+from example_site.tests.utils import CMSApiTestCase
 
 
 class ContactPluginTestCase(CMSApiTestCase):
 
     def test_contact_plugin_empty_data_submission(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'ContactFormPlugin', 'en', form_name='contact us')
         url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
@@ -34,7 +34,7 @@ class ContactPluginTestCase(CMSApiTestCase):
         self.assertEqual(response.data['sender'][0], 'This field is required.')
 
     def test_contact_plugin_data_submission(self):
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'ContactFormPlugin', 'en', form_name='contact us')
         url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
@@ -55,7 +55,7 @@ class ContactPluginTestCase(CMSApiTestCase):
         Test for plugin from https://github.com/maccesch/cmsplugin-contact
         :return:
         """
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'CustomContactPlugin', 'en', custom_label='contact us')
         url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
@@ -72,7 +72,7 @@ class ContactPluginTestCase(CMSApiTestCase):
         Test for plugin from https://github.com/maccesch/cmsplugin-contact
         :return:
         """
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'CustomContactPlugin', 'en', form_name='contact us')
         url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
@@ -95,7 +95,7 @@ class ContactPluginTestCase(CMSApiTestCase):
         Test for plugin from https://github.com/maccesch/cmsplugin-contact
         :return:
         """
-        page = create_page('page', 'page.html', 'en', published=True)
+        page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin = add_plugin(placeholder, 'ContactPlugin', 'en', form_name='contact us')
         url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
