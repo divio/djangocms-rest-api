@@ -1,4 +1,5 @@
 django-cms==3.4
+djangorestframework==3.5.2
 django-treebeard>=4.0
 
 https://github.com/divio/djangocms-column/archive/master.zip?1469719301.15
@@ -21,3 +22,7 @@ Pillow>=2.3
 django-sekizai>=0.7
 six
 PyHamcrest>=1.9.0
+
+djangocms-forms==0.2.2
+cmsplugin-contact==1.1.2
+django-select2==5.8.9
