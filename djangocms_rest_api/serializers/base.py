@@ -223,6 +223,8 @@ def modelserializer_factory(model, serializer=serializers.ModelSerializer, field
         meta_attrs['fields'] = fields
     if exclude is not None:
         meta_attrs['exclude'] = exclude
+    if fields is None and exclude is None:
+        meta_attrs['fields'] = '__all__'
 
     parent = (object, )
     Meta = type(str('Meta'), parent, meta_attrs)
