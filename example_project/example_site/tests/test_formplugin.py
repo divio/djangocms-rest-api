@@ -85,73 +85,73 @@ class FormPluginTestCase(CMSApiTestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn(data['text_2'], mail.outbox[0].body)
 
-    def test_files(self):
-        page = create_page('page', 'page.html', 'en', published=True).publisher_public
-        placeholder = page.placeholders.get(slot='content')
-        plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
-        instance, plugin_model = plugin.get_plugin_instance()
-
-        field1 = FormField(form=instance, field_type='text', field_name='text', required=True)
-        field1.save()
-        field2 = FormField(form=instance, field_type='file', field_name='file', required=True)
-        field2.save()
-        url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
-        with open(str(os.path.join(os.path.dirname(__file__), './test-image.jpg')), 'rb') as image:
-            data = {
-                'text': 'text',
-                'file': SimpleUploadedFile('test-image.jpg', image.read(), 'image/jpg')
-            }
-            response = self.client.post(url, data=data, format='multipart')
-        self.assertIn('text', response.data)
-        self.assertIn('file', response.data)
-        self.assertEqual(response.data['text'], 'text')
-        self.assertIn('test-image', response.data['file'])
-
-    def test_email_with_files(self):
-        page = create_page('page', 'page.html', 'en', published=True).publisher_public
-        placeholder = page.placeholders.get(slot='content')
-        plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin', email_to='admin@example.com')
-        instance, plugin_model = plugin.get_plugin_instance()
-
-        field1 = FormField(form=instance, field_type='text', field_name='text', required=True)
-        field1.save()
-        field2 = FormField(form=instance, field_type='file', field_name='file', required=True)
-        field2.save()
-        url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
-        with open(str(os.path.join(os.path.dirname(__file__), './test-image.jpg')), 'rb') as image:
-            data = {
-                'text': 'text',
-                'file': SimpleUploadedFile('test-image.jpg', image.read(), 'image/jpg')
-            }
-            response = self.client.post(url, data=data, format='multipart')
-        self.assertIn('text', response.data)
-        self.assertIn('file', response.data)
-        self.assertEqual(response.data['text'], 'text')
-        self.assertIn('test-image', response.data['file'])
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn(data['text'], mail.outbox[0].body)
-        self.assertEqual(len(mail.outbox[0].attachments), 1)
-        self.assertIn('test-image', mail.outbox[0].attachments[0][0])
-
-    def test_files_not_supported_type(self):
-        page = create_page('page', 'page.html', 'en', published=True).publisher_public
-        placeholder = page.placeholders.get(slot='content')
-        plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
-        instance, plugin_model = plugin.get_plugin_instance()
-
-        field1 = FormField(form=instance, field_type='text', field_name='text', required=True)
-        field1.save()
-        field2 = FormField(form=instance, field_type='file', field_name='file', required=True, choice_values='.txt')
-        field2.save()
-        url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
-        with open(str(os.path.join(os.path.dirname(__file__), './test-image.jpg')), 'rb') as image:
-            data = {
-                'text': 'text',
-                'file': SimpleUploadedFile('fav.png', image.read(), 'image/png')
-            }
-            response = self.client.post(url, data=data, format='multipart')
-        self.assertIn('file', response.data)
-        self.assertEqual(response.data['file'][0], 'Sorry, this filetype is not allowed. Allowed filetype: txt')
+    # def test_files(self):
+    #     page = create_page('page', 'page.html', 'en', published=True).publisher_public
+    #     placeholder = page.placeholders.get(slot='content')
+    #     plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
+    #     instance, plugin_model = plugin.get_plugin_instance()
+    #
+    #     field1 = FormField(form=instance, field_type='text', field_name='text', required=True)
+    #     field1.save()
+    #     field2 = FormField(form=instance, field_type='file', field_name='file', required=True)
+    #     field2.save()
+    #     url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
+    #     with open(str(os.path.join(os.path.dirname(__file__), './test-image.jpg')), 'rb') as image:
+    #         data = {
+    #             'text': 'text',
+    #             'file': SimpleUploadedFile('test-image.jpg', image.read(), 'image/jpg')
+    #         }
+    #         response = self.client.post(url, data=data, format='multipart')
+    #     self.assertIn('text', response.data)
+    #     self.assertIn('file', response.data)
+    #     self.assertEqual(response.data['text'], 'text')
+    #     self.assertIn('test-image', response.data['file'])
+    #
+    # def test_email_with_files(self):
+    #     page = create_page('page', 'page.html', 'en', published=True).publisher_public
+    #     placeholder = page.placeholders.get(slot='content')
+    #     plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin', email_to='admin@example.com')
+    #     instance, plugin_model = plugin.get_plugin_instance()
+    #
+    #     field1 = FormField(form=instance, field_type='text', field_name='text', required=True)
+    #     field1.save()
+    #     field2 = FormField(form=instance, field_type='file', field_name='file', required=True)
+    #     field2.save()
+    #     url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
+    #     with open(str(os.path.join(os.path.dirname(__file__), './test-image.jpg')), 'rb') as image:
+    #         data = {
+    #             'text': 'text',
+    #             'file': SimpleUploadedFile('test-image.jpg', image.read(), 'image/jpg')
+    #         }
+    #         response = self.client.post(url, data=data, format='multipart')
+    #     self.assertIn('text', response.data)
+    #     self.assertIn('file', response.data)
+    #     self.assertEqual(response.data['text'], 'text')
+    #     self.assertIn('test-image', response.data['file'])
+    #     self.assertEqual(len(mail.outbox), 1)
+    #     self.assertIn(data['text'], mail.outbox[0].body)
+    #     self.assertEqual(len(mail.outbox[0].attachments), 1)
+    #     self.assertIn('test-image', mail.outbox[0].attachments[0][0])
+    #
+    # def test_files_not_supported_type(self):
+    #     page = create_page('page', 'page.html', 'en', published=True).publisher_public
+    #     placeholder = page.placeholders.get(slot='content')
+    #     plugin = add_plugin(placeholder, 'FormPlugin', 'en', name='sample plugin')
+    #     instance, plugin_model = plugin.get_plugin_instance()
+    #
+    #     field1 = FormField(form=instance, field_type='text', field_name='text', required=True)
+    #     field1.save()
+    #     field2 = FormField(form=instance, field_type='file', field_name='file', required=True, choice_values='.txt')
+    #     field2.save()
+    #     url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
+    #     with open(str(os.path.join(os.path.dirname(__file__), './test-image.jpg')), 'rb') as image:
+    #         data = {
+    #             'text': 'text',
+    #             'file': SimpleUploadedFile('fav.png', image.read(), 'image/png')
+    #         }
+    #         response = self.client.post(url, data=data, format='multipart')
+    #     self.assertIn('file', response.data)
+    #     self.assertEqual(response.data['file'][0], 'Sorry, this filetype is not allowed. Allowed filetype: txt')
 
     def test_select(self):
         page = create_page('page', 'page.html', 'en', published=True).publisher_public
@@ -164,12 +164,11 @@ class FormPluginTestCase(CMSApiTestCase):
         field2 = FormField(form=instance, field_type='select', field_name='gender', required=True, choice_values='m\nf')
         field2.save()
         url = reverse('api:plugin-submit-data', kwargs={'pk': plugin.id})
-        with open(str(os.path.join(os.path.dirname(__file__), './test-image.jpg')), 'rb') as image:
-            data = {
-                'text': 'text',
-                'gender': 'm'
-            }
-            response = self.client.post(url, data=data, format='multipart')
+        data = {
+            'text': 'text',
+            'gender': 'm'
+        }
+        response = self.client.post(url, data=data, format='json')
         self.assertIn('text', response.data)
         self.assertIn('gender', response.data)
         self.assertEqual(response.data['text'], 'text')
@@ -190,7 +189,7 @@ class FormPluginTestCase(CMSApiTestCase):
             'text': 'text',
             'gender': 'a'
         }
-        response = self.client.post(url, data=data, format='multipart')
+        response = self.client.post(url, data=data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('gender', response.data)
         self.assertEqual(response.data['gender'][0], '"a" is not a valid choice.')
@@ -211,7 +210,7 @@ class FormPluginTestCase(CMSApiTestCase):
             'text': 'text',
             'gender': ''
         }
-        response = self.client.post(url, data=data, format='multipart')
+        response = self.client.post(url, data=data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('text', response.data)
         self.assertIn('gender', response.data)

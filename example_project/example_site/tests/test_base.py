@@ -5,6 +5,7 @@ from __future__ import with_statement
 import os.path
 
 from cms.api import create_page, add_plugin
+from cms.models import User
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -63,44 +64,98 @@ class PagesTestCase(CMSApiTestCase):
 
 class PlaceHolderTestCase(CMSApiTestCase):
 
-    def test_placeholders(self):
-        """
-        Test that placeholder are accessible and contains required info
-        """
-        page = create_page('page', 'page.html', 'en', published=True).publisher_public
-        url = reverse('api:placeholder-list')
-        response = self.client.get(url, formst='json')
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['slot'], 'content')
-        page2 = create_page('page2', 'feature.html', 'en', published=True).publisher_public
-        response = self.client.get(url, formst='json')
-        self.assertEqual(len(response.data), 3)
-        self.assertEqual(response.data[1]['slot'], 'feature')
-        self.assertEqual(response.data[2]['slot'], 'content')
-
     def test_placeholder(self):
         """
         Test that placeholder are accessible and contains required info
         """
         page = create_page('page', 'page.html', 'en', published=True).publisher_public
-        page = page.publisher_public
         placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, "TextPlugin", "en", body="Test text")
         url = reverse('api:placeholder-detail', kwargs={'pk': placeholder.pk})
         response = self.client.get(url)
+        self.assertEqual(len(response.data['plugins']), 1)
+        self.assertEqual(response.data['plugins'][0], plugin.id)
+
+    def test_anonymous_cant_see_placeholder_from_draft(self):
+        """
+        tests that user gets forbidden error if tries to load placeholder from not published page
+        :return:
+        """
+        page = create_page('page', 'page.html', 'en', published=False)
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, "TextPlugin", "en", body="Test text")
+        url = reverse('api:placeholder-detail', kwargs={'pk': placeholder.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertNotIn('plugins', response.data)
+
+    def test_anonymous_cant_see_placeholder_from_page_for_authenticated_only(self):
+        """
+        tests that user gets forbidden error if tries to load placeholder
+        from page which is available only to logged in users
+        :return:
+        """
+        page = create_page('page', 'page.html', 'en', published=True, login_required=True).publisher_public
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, "TextPlugin", "en", body="Test text")
+        url = reverse('api:placeholder-detail', kwargs={'pk': placeholder.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertNotIn('plugins', response.data)
+
+    def test_authenticated_can_see_placeholder_from_page_for_authenticated_only(self):
+        """
+        tests that user gets forbidden error if tries to load placeholder
+        from page which is available only to logged in users
+        :return:
+        """
+        page = create_page('page', 'page.html', 'en', published=True, login_required=True).publisher_public
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, "TextPlugin", "en", body="Test text")
+        user = User.objects.create(username='testuser', email='testuser@example.com')
+        user.set_password('testuser')
+        self.client.force_authenticate(user)
+        url = reverse('api:placeholder-detail', kwargs={'pk': placeholder.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('plugins', response.data)
+        self.assertEqual(response.data['plugins'][0], plugin.id)
+
+    def test_authenticated_cant_see_placeholder_from_drafts(self):
+        """
+        tests that user gets forbidden error if tries to load placeholder
+        from page which is available only to logged in users
+        :return:
+        """
+        page = create_page('page', 'page.html', 'en', published=False, login_required=True)
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, "TextPlugin", "en", body="Test text")
+        user = User.objects.create(username='testuser', email='testuser@example.com')
+        user.set_password('testuser')
+        self.client.force_authenticate(user)
+        url = reverse('api:placeholder-detail', kwargs={'pk': placeholder.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_test_staff_can_see_placeholder_from_not_published_pages_for_authenticated(self):
+        """
+        tests that staff user can get placeholder from invisible for others page
+        :return:
+        """
+        page = create_page('page', 'page.html', 'en', published=False, login_required=True)
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, "TextPlugin", "en", body="Test text")
+        user = User.objects.create(username='testuser', email='testuser@example.com', is_staff=True)
+        user.set_password('testuser')
+        self.client.force_authenticate(user)
+        url = reverse('api:placeholder-detail', kwargs={'pk': placeholder.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('plugins', response.data)
+        self.assertEqual(response.data['plugins'][0], plugin.id)
 
 
 class PluginTestCase(CMSApiTestCase):
-
-    def test_plugins_list(self):
-        page = create_page('page', 'page.html', 'en', published=True).publisher_public
-        placeholder = page.placeholders.get(slot='content')
-        plugin_1 = add_plugin(placeholder, 'TextPlugin', 'en', body='Test content')
-        plugin_2 = add_plugin(placeholder, 'TextPlugin', 'en', body='Test content 2')
-        url = reverse('api:plugin-list')
-        response = self.client.get(url, format='json')
-        self.assertEqual(len(response.data), 2)
-        self.assertEqual(response.data[0]['plugin_data']['body'], plugin_1.body)
-        self.assertEqual(response.data[1]['plugin_data']['body'], plugin_2.body)
 
     def test_plugin_detail(self):
         page = create_page('page', 'page.html', 'en', published=True).publisher_public
@@ -194,20 +249,6 @@ class PluginTestCase(CMSApiTestCase):
         # TODO: check urls
         self.assertIn(image.url, data['plugin_data']['image']['file'])
 
-    def test_custom_serializer_list(self):
-        page = create_page('page', 'page.html', 'en', published=True).publisher_public
-        placeholder = page.placeholders.get(slot='content')
-        plugin = add_plugin(placeholder, 'SliderPlugin', 'en', name='Slider')
-        instance, plugin_model = plugin.get_plugin_instance()
-
-        image = SimpleUploadedFile("image.jpg", b"content")
-        image = SimpleUploadedFile("image.jpg", b"content")
-        slide_1 = Slide.objects.create(title='slide 1', image=image, slider=instance)
-        slide_2 = Slide.objects.create(title='slide 2', image=image, slider=instance)
-        url = reverse('api:plugin-list')
-        response = self.client.get(url, format='json')
-        self.assertIn('test', response.data[0])
-
     def test_custom_serializer_detail(self):
         page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
@@ -221,3 +262,79 @@ class PluginTestCase(CMSApiTestCase):
         url = reverse('api:plugin-detail', kwargs={'pk': plugin.id})
         response = self.client.get(url, format='json')
         self.assertIn('test', response.data)
+
+    def test_anonymous_cant_see_plugin_from_draft(self):
+        """
+        tests that user gets forbidden error if tries to load placeholder from not published page
+        :return:
+        """
+        page = create_page('page', 'page.html', 'en', published=False)
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, "TextPlugin", "en", body="Test text")
+        url = reverse('api:plugin-detail', kwargs={'pk': plugin.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_anonymous_cant_see_plugin_from_page_for_authenticated_only(self):
+        """
+        tests that user gets forbidden error if tries to load placeholder
+        from page which is available only to logged in users
+        :return:
+        """
+        page = create_page('page', 'page.html', 'en', published=True, login_required=True).publisher_public
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, "TextPlugin", "en", body="Test text")
+        url = reverse('api:plugin-detail', kwargs={'pk': plugin.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_authenticated_can_see_plugin_from_page_for_authenticated_only(self):
+        """
+        tests that user gets forbidden error if tries to load placeholder
+        from page which is available only to logged in users
+        :return:
+        """
+        page = create_page('page', 'page.html', 'en', published=True, login_required=True).publisher_public
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, "TextPlugin", "en", body="Test text")
+        user = User.objects.create(username='testuser', email='testuser@example.com')
+        user.set_password('testuser')
+        self.client.force_authenticate(user)
+        url = reverse('api:plugin-detail', kwargs={'pk': plugin.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('plugin_type', response.data)
+        self.assertEqual(response.data['plugin_type'], 'TextPlugin')
+
+    def test_authenticated_cant_see_plugin_from_drafts(self):
+        """
+        tests that user gets forbidden error if tries to load placeholder
+        from page which is available only to logged in users
+        :return:
+        """
+        page = create_page('page', 'page.html', 'en', published=False, login_required=True)
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, "TextPlugin", "en", body="Test text")
+        user = User.objects.create(username='testuser', email='testuser@example.com')
+        user.set_password('testuser')
+        self.client.force_authenticate(user)
+        url = reverse('api:plugin-detail', kwargs={'pk': plugin.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_test_staff_can_see_not_plugin_from_published_pages_for_authenticated(self):
+        """
+        tests that staff user can get placeholder from invisible for others page
+        :return:
+        """
+        page = create_page('page', 'page.html', 'en', published=False, login_required=True)
+        placeholder = page.placeholders.get(slot='content')
+        plugin = add_plugin(placeholder, "TextPlugin", "en", body="Test text")
+        user = User.objects.create(username='testuser', email='testuser@example.com', is_staff=True)
+        user.set_password('testuser')
+        self.client.force_authenticate(user)
+        url = reverse('api:plugin-detail', kwargs={'pk': plugin.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('plugin_type', response.data)
+        self.assertEqual(response.data['plugin_type'], 'TextPlugin')

@@ -8,6 +8,7 @@ from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
 
 from cms.models import Page, Placeholder, CMSPlugin
 from django.contrib.sites.shortcuts import get_current_site
+from django.utils.translation import ugettext as _
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import mixins
