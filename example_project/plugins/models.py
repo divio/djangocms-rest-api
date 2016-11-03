@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
-from six import python_2_unicode_compatible
 from cms.models import CMSPlugin
 from django.db import models
+from six import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
 
 

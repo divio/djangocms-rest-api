@@ -121,7 +121,7 @@ MIDDLEWARE_CLASSES = [
     'cms.middleware.user.CurrentUserMiddleware',
     'cms.middleware.page.CurrentPageMiddleware',
     'cms.middleware.toolbar.ToolbarMiddleware',
-    'cms.middleware.language.LanguageCookieMiddleware'
+    'cms.middleware.language.LanguageCookieMiddleware',
 ]
 
 INSTALLED_APPS = [
@@ -152,7 +152,7 @@ INSTALLED_APPS = [
     'djangocms_googlemap',
     'djangocms_inherit',
     'djangocms_link',
-    'reversion',
+    # 'reversion',
     'example_site',
     'plugins',
     'rest_framework',
@@ -213,7 +213,6 @@ DATABASES = {
 }
 
 MIGRATION_MODULES = {
-    
 }
 
 THUMBNAIL_PROCESSORS = (

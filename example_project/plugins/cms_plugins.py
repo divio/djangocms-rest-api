@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
-from cms.plugin_pool import plugin_pool
 from cms.plugin_base import CMSPluginBase
+from cms.plugin_pool import plugin_pool
 from django.conf import settings
 from django.contrib import admin
+
 
 from plugins.models import Slide, Slider
 from plugins.serializers import SliderWithInlinesPluginSerializer
