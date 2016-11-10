@@ -8,17 +8,6 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.utils import timezone
 
 
-class QuerysetMixin(object):
-
-    def get_queryset(self):
-        site = get_current_site(self.request)
-        queryset = super(QuerysetMixin, self).get_queryset()
-        if self.request.user.is_staff:
-            return queryset.drafts().on_site(site=site).distinct()
-        else:
-            return queryset.public().on_site(site=site).distinct()
-
-
 def check_if_page_is_visible(request, page, pages=None, site=None):
     # used next check for now, think of replacement later
 

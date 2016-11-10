@@ -11,8 +11,22 @@ from rest_framework.serializers import ListSerializer
 
 from djangocms_rest_api.serializers.utils import RequestSerializer, ClassLookupDict
 from djangocms_rest_api.serializers.mapping import serializer_class_mapping
+from djangocms_rest_api.serializers.fields import RecursiveField
 
 serializer_cache = {}
+
+
+class MenuSerializer(RequestSerializer, serializers.Serializer):
+    title = serializers.CharField(source='get_menu_title', read_only=True)
+    id = serializers.CharField(read_only=True)
+    visible = serializers.BooleanField(read_only=True)
+    descendants = serializers.ListField(
+        child=RecursiveField(), source='get_descendants', read_only=True
+    )
+
+    class Meta:
+        fields = ['title', 'id', 'visible']
+
 
 
 class PageSerializer(RequestSerializer, serializers.ModelSerializer):
