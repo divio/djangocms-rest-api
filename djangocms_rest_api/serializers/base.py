@@ -2,16 +2,17 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from collections import OrderedDict
-from cms.models import Page, Placeholder, CMSPlugin
-from cms.utils.plugins import build_plugin_tree, downcast_plugins
+
 from django.db import models
 from django.core.urlresolvers import reverse
+from cms.models import Page, Placeholder, CMSPlugin
+from cms.utils.plugins import build_plugin_tree, downcast_plugins
 from rest_framework import serializers
 from rest_framework.serializers import ListSerializer
 
-from djangocms_rest_api.serializers.utils import RequestSerializer, ClassLookupDict
-from djangocms_rest_api.serializers.mapping import serializer_class_mapping
 from djangocms_rest_api.serializers.fields import RecursiveField
+from djangocms_rest_api.serializers.mapping import serializer_class_mapping
+from djangocms_rest_api.serializers.utils import RequestSerializer, ClassLookupDict
 
 serializer_cache = {}
 
@@ -182,9 +183,8 @@ class BasePluginSerializer(serializers.ModelSerializer):
                     plugin_data['children'].append(get_plugin_data(plug))
             return plugin_data
 
-        if children[0].child_plugin_instances:
-            for child in children[0].child_plugin_instances:
-                data.append(get_plugin_data(child))
+        for child in children[0].child_plugin_instances or []:
+            data.append(get_plugin_data(child))
         return data
 
 
