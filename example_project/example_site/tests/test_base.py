@@ -2,20 +2,16 @@
 from __future__ import absolute_import, print_function, unicode_literals
 from __future__ import with_statement
 
-import os.path
-
+from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.urlresolvers import reverse
 from cms.api import create_page, add_plugin
 from cms.models import User
-from django.core.cache import cache
-from django.core.urlresolvers import reverse
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core import mail
 from filer.models import Image
 from rest_framework import status
-from rest_framework.test import APIClient
 
-from plugins.models import Slide
 from example_site.tests.utils import CMSApiTestCase
+from plugins.models import Slide
 
 
 class MenusTestCase(CMSApiTestCase):
