@@ -14,30 +14,6 @@ from example_site.tests.utils import CMSApiTestCase
 from plugins.models import Slide
 
 
-class MenusTestCase(CMSApiTestCase):
-
-    def tearDown(self):
-        cache.clear()
-
-    def test_menu(self):
-        user = self.get_superuser()
-        self.client.force_authenticate(user)
-        title_1 = 'page'
-        title_2 = 'inner'
-        title_3 = 'page 3'
-        page = create_page(title_1, 'page.html', 'en', published=True, in_navigation=True).publisher_public
-        page_2 = create_page(
-            title_2, 'page.html', 'en', published=True, parent=page, in_navigation=True).publisher_public
-        page.toggle_in_navigation(True)
-        page_2.toggle_in_navigation(True)
-        page_3 = create_page(title_3, 'page.html', 'en', published=False)
-
-        url = reverse('api:menu-list')
-        response = self.client.get(url, format='json')
-        # this for now, since tests behave in a really strange way
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-
 class PagesTestCase(CMSApiTestCase):
 
     def tearDown(self):
