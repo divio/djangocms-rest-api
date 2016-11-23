@@ -4,30 +4,15 @@ from __future__ import absolute_import, print_function, unicode_literals
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.translation import ugettext as _
 from cms.models import Page, Placeholder, CMSPlugin
-from menus.menu_pool import menu_pool
 from rest_framework import mixins
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
 
 from djangocms_rest_api.serializers import (
-    PageSerializer, PlaceHolderSerializer, BasePluginSerializer, get_serializer_class, MenuSerializer
+    PageSerializer, PlaceHolderSerializer, BasePluginSerializer, get_serializer_class
 )
 from djangocms_rest_api.views.utils import check_if_page_is_visible
-
-
-class MenuViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    serializer_class = MenuSerializer
-
-    def get_queryset(self):
-        site = get_current_site(self.request)
-        menu_renderer = menu_pool.get_renderer(self.request)
-
-        # next needs to be updated, leave as working for now
-        nodes = menu_renderer._build_nodes(site_id=site.id)
-        nodes = [node for node in nodes if not node.parent_id]
-
-        return nodes
 
 
 class PageViewSet(viewsets.ReadOnlyModelViewSet):

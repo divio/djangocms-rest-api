@@ -14,30 +14,6 @@ from example_site.tests.utils import CMSApiTestCase
 from plugins.models import Slide
 
 
-class MenusTestCase(CMSApiTestCase):
-
-    def tearDown(self):
-        cache.clear()
-
-    def test_menu(self):
-        user = self.get_superuser()
-        self.client.force_authenticate(user)
-        title_1 = 'page'
-        title_2 = 'inner'
-        title_3 = 'page 3'
-        page = create_page(title_1, 'page.html', 'en', published=True, in_navigation=True).publisher_public
-        page_2 = create_page(
-            title_2, 'page.html', 'en', published=True, parent=page, in_navigation=True).publisher_public
-        page.toggle_in_navigation(True)
-        page_2.toggle_in_navigation(True)
-        page_3 = create_page(title_3, 'page.html', 'en', published=False)
-
-        url = reverse('api:menu-list')
-        response = self.client.get(url, format='json')
-        # this for now, since tests behave in a really strange way
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-
 class PagesTestCase(CMSApiTestCase):
 
     def tearDown(self):
@@ -156,7 +132,7 @@ class PlaceHolderTestCase(CMSApiTestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_test_staff_can_see_placeholder_from_not_published_pages_for_authenticated(self):
+    def test_staff_can_not_see_placeholder_from_not_published_pages_for_authenticated(self):
         """
         tests that staff user can get placeholder from invisible for others page
         :return:
@@ -169,9 +145,7 @@ class PlaceHolderTestCase(CMSApiTestCase):
         self.client.force_authenticate(user)
         url = reverse('api:placeholder-detail', kwargs={'pk': placeholder.pk})
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('plugins', response.data)
-        self.assertEqual(response.data['plugins'][0], plugin.id)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class PluginTestCase(CMSApiTestCase):
@@ -341,7 +315,7 @@ class PluginTestCase(CMSApiTestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_test_staff_can_see_not_plugin_from_published_pages_for_authenticated(self):
+    def test_staff_can_not_see_plugin_from_not_published_pages_for_authenticated(self):
         """
         tests that staff user can get placeholder from invisible for others page
         :return:
@@ -354,6 +328,4 @@ class PluginTestCase(CMSApiTestCase):
         self.client.force_authenticate(user)
         url = reverse('api:plugin-detail', kwargs={'pk': plugin.pk})
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('plugin_type', response.data)
-        self.assertEqual(response.data['plugin_type'], 'TextPlugin')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
