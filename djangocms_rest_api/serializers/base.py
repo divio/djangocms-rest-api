@@ -11,8 +11,8 @@ from rest_framework import serializers
 from rest_framework.serializers import ListSerializer
 
 from djangocms_rest_api.serializers.fields import RecursiveField
-from djangocms_rest_api.serializers.mapping import serializer_class_mapping
-from djangocms_rest_api.serializers.utils import RequestSerializer, ClassLookupDict
+from djangocms_rest_api.serializers.mapping import plugin_serializer_mapping
+from djangocms_rest_api.serializers.utils import RequestSerializer
 
 serializer_cache = {}
 
@@ -258,7 +258,7 @@ def get_serializer_class(plugin=None, model=None):
     if plugin:
         serializer_class = getattr(plugin, 'serializer_class', None)
         if not serializer_class:
-            serializer_class = ClassLookupDict(serializer_class_mapping).get(type(plugin))
+            serializer_class = plugin_serializer_mapping.get(type(plugin).__name__)
 
     if not serializer_class:
         if not model:

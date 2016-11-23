@@ -156,7 +156,7 @@ class PlaceHolderTestCase(CMSApiTestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_test_staff_can_see_placeholder_from_not_published_pages_for_authenticated(self):
+    def test_staff_can_not_see_placeholder_from_not_published_pages_for_authenticated(self):
         """
         tests that staff user can get placeholder from invisible for others page
         :return:
@@ -169,9 +169,7 @@ class PlaceHolderTestCase(CMSApiTestCase):
         self.client.force_authenticate(user)
         url = reverse('api:placeholder-detail', kwargs={'pk': placeholder.pk})
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('plugins', response.data)
-        self.assertEqual(response.data['plugins'][0], plugin.id)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class PluginTestCase(CMSApiTestCase):
@@ -341,7 +339,7 @@ class PluginTestCase(CMSApiTestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_test_staff_can_see_not_plugin_from_published_pages_for_authenticated(self):
+    def test_staff_can_not_see_plugin_from_not_published_pages_for_authenticated(self):
         """
         tests that staff user can get placeholder from invisible for others page
         :return:
@@ -354,6 +352,4 @@ class PluginTestCase(CMSApiTestCase):
         self.client.force_authenticate(user)
         url = reverse('api:plugin-detail', kwargs={'pk': plugin.pk})
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('plugin_type', response.data)
-        self.assertEqual(response.data['plugin_type'], 'TextPlugin')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

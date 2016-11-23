@@ -5,7 +5,8 @@ from cms.models import Page
 from cms.utils.page_permissions import user_can_view_page
 
 
-def check_if_page_is_visible(user, page):
+def check_if_page_is_visible(request, page):
+    user = request.user
     if page.publisher_is_draft:
         return False
 
