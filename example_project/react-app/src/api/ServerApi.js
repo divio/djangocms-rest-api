@@ -11,7 +11,7 @@ module.exports = {
                 ServerActions.receiveMenuItems(JSON.parse(this.responseText))
             }
         };
-        xhttp.open("GET", Constants.API_ENDPOINT + 'menus/', true);
+        xhttp.open("GET", Constants.API_ENDPOINT + 'pages/', true);
         xhttp.send();
 
 
