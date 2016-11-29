@@ -244,7 +244,7 @@ def get_serializer_class(plugin=None, model=None):
     if plugin:
         serializer_class = getattr(plugin, 'serializer_class', None)
         if not serializer_class:
-            serializer_class = plugin_serializer_mapping.get(type(plugin).__name__)
+            serializer_class = plugin_serializer_mapping.get(plugin.plugin_type)
 
     if not serializer_class:
         if not model:
