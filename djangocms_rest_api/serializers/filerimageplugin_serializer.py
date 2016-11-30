@@ -10,3 +10,4 @@ class FilerImagePluginSerializer(serializers.ModelSerializer):
     class Meta:
         model = FilerImage
         depth = 1
+        fields = '__all__'

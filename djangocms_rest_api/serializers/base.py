@@ -2,14 +2,16 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from collections import OrderedDict
-from cms.models import Page, Placeholder, CMSPlugin
-from cms.utils.plugins import build_plugin_tree, downcast_plugins
+
 from django.db import models
 from django.core.urlresolvers import reverse
+from cms.models import Page, Placeholder, CMSPlugin
+from cms.utils.plugins import build_plugin_tree, downcast_plugins
 from rest_framework import serializers
 from rest_framework.serializers import ListSerializer
+
+from djangocms_rest_api.serializers.mapping import plugin_serializer_mapping
 from djangocms_rest_api.serializers.utils import RequestSerializer
-from djangocms_rest_api.serializers.mapping import serializer_class_mapping
 
 serializer_cache = {}
 
@@ -153,9 +155,9 @@ class BasePluginSerializer(serializers.ModelSerializer):
             return data
         children = obj.get_descendants().order_by('placeholder', 'path')
         children = [obj] + list(children)
-        children = downcast_plugins(children)
+        children = list(downcast_plugins(children))
         children[0].parent_id = None
-        children = build_plugin_tree(children)
+        children = list(build_plugin_tree(children))
 
         def get_plugin_data(child_plugin):
             serializer = get_serializer(child_plugin, model=child_plugin._meta.model, context=self.context)
@@ -166,8 +168,8 @@ class BasePluginSerializer(serializers.ModelSerializer):
                 for plug in child_plugin.child_plugin_instances:
                     plugin_data['children'].append(get_plugin_data(plug))
             return plugin_data
-        for child in children[0].child_plugin_instances:
 
+        for child in children[0].child_plugin_instances or []:
             data.append(get_plugin_data(child))
         return data
 
@@ -221,6 +223,8 @@ def modelserializer_factory(model, serializer=serializers.ModelSerializer, field
         meta_attrs['fields'] = fields
     if exclude is not None:
         meta_attrs['exclude'] = exclude
+    if fields is None and exclude is None:
+        meta_attrs['fields'] = '__all__'
 
     parent = (object, )
     Meta = type(str('Meta'), parent, meta_attrs)
@@ -240,7 +244,7 @@ def get_serializer_class(plugin=None, model=None):
     if plugin:
         serializer_class = getattr(plugin, 'serializer_class', None)
         if not serializer_class:
-            serializer_class = serializer_class_mapping.get(type(plugin))
+            serializer_class = plugin_serializer_mapping.get(plugin.plugin_type)
 
     if not serializer_class:
         if not model:
