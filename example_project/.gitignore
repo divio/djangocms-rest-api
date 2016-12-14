@@ -56,3 +56,6 @@ media/
 
 # Database
 *.db
+
+#JS
+node_modules/*

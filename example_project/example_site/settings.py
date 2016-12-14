@@ -116,6 +116,7 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.locale.LocaleMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'cms.middleware.user.CurrentUserMiddleware',
@@ -157,6 +158,7 @@ INSTALLED_APPS = [
     'plugins',
     'rest_framework',
     'djangocms_rest_api',
+    'corsheaders',
 ]
 
 LANGUAGES = (
@@ -221,3 +223,6 @@ THUMBNAIL_PROCESSORS = (
     'filer.thumbnail_processors.scale_and_crop_with_subject_location',
     'easy_thumbnails.processors.filters'
 )
+
+
+CORS_ORIGIN_ALLOW_ALL = True
