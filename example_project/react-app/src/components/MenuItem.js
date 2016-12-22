@@ -1,13 +1,8 @@
 // MenuItem component
 var React = require('react');
-
-var NavItem = require('react-bootstrap/lib/NavItem');
+var Link = require('react-router').Link;
 
 var MenuItem = React.createClass({
-
-    _handleClick: function () {
-        alert(this.props.item.id);
-    },
 
     /**
      * @return {object}
@@ -15,7 +10,9 @@ var MenuItem = React.createClass({
     render: function () {
 
         return (
-            <NavItem eventKey={this.props.index} onClick={this._handleClick} href="#">{this.props.item.menu_title}</NavItem>
+            <li role="presentation" className="">
+                <Link to={`/page/${this.props.item.id}`} role="button">{this.props.item.menu_title}</Link>
+            </li>
 
         );
     },

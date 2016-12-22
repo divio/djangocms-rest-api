@@ -239,12 +239,14 @@ def modelserializer_factory(model, serializer=serializers.ModelSerializer, field
     return serializer_class
 
 
-def get_serializer_class(plugin=None, model=None):
+def get_serializer_class(plugin=None, model=None, instance=None):
     serializer_class = None
     if plugin:
+        # import pdb
+        # pdb.set_trace()
         serializer_class = getattr(plugin, 'serializer_class', None)
-        if not serializer_class:
-            serializer_class = plugin_serializer_mapping.get(plugin.plugin_type)
+        if not serializer_class and instance:
+            serializer_class = plugin_serializer_mapping.get(instance.plugin_type)
 
     if not serializer_class:
         if not model:
@@ -262,7 +264,8 @@ def get_serializer(instance, plugin=None, model=None, *args, **kwargs):
     :param kwargs: kwargs like many and other
     :return:
     """
-    serializer_class = get_serializer_class(plugin=plugin, model=model)
+    serializer_class = get_serializer_class(plugin=plugin, model=model, instance=instance)
+    print(instance.plugin_type)
     if 'read_only' not in kwargs:
         kwargs['read_only'] = True
     return serializer_class(instance, *args, **kwargs)
