@@ -2,7 +2,6 @@
 var React = require('react');
 var PlaceholderStore = require('../stores/PlaceholderStore.js');
 var Plugin = require('./Plugin.js');
-var _ = require('lodash');
 
 var Placeholder = React.createClass({
 

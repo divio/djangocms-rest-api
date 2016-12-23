@@ -6,7 +6,6 @@ var AppConstants = require('../constants/Constants');
 var ServerApi = require('../api/ServerApi');
 var ObjectAssign = require('object-assign');
 var EventEmitter = require('events').EventEmitter;
-var _ = require('lodash');
 
 var CHANGE_EVENT = 'change';
 
