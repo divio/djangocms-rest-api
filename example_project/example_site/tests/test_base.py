@@ -154,11 +154,11 @@ class PluginTestCase(CMSApiTestCase):
         page = create_page('page', 'page.html', 'en', published=True).publisher_public
         placeholder = page.placeholders.get(slot='content')
         plugin_1 = add_plugin(
-            placeholder, 'GoogleMapPlugin', 'en', address="Riedtlistrasse 16", zipcode="8006", city="Zurich", )
+            placeholder, 'GoogleMapPlugin', 'en', title="Map Plugin")
         url = reverse('api:plugin-detail', kwargs={'pk': plugin_1.id})
         response = self.client.get(url, format='json')
         self.assertEqual(response.data['plugin_type'], 'GoogleMapPlugin')
-        self.assertEqual(response.data['plugin_data']['address'], plugin_1.address)
+        self.assertEqual(response.data['plugin_data']['title'], plugin_1.title)
 
     def test_plugin_with_inlines(self):
         page = create_page('page', 'page.html', 'en', published=True).publisher_public
@@ -237,10 +237,10 @@ class PluginTestCase(CMSApiTestCase):
         url = reverse('api:plugin-detail', kwargs={'pk': plugin.id})
         response = self.client.get(url, format='json')
         data = response.data
-        self.assertIsNotNone(data['plugin_data']['image'])
-        self.assertTrue(isinstance(data['plugin_data']['image'], dict))
+        self.assertIsNotNone(data['image'])
+        self.assertTrue(isinstance(data['image'], dict))
         # TODO: check urls
-        self.assertIn(image.url, data['plugin_data']['image']['file'])
+        self.assertIn(image.url, data['image']['file'])
 
     def test_custom_serializer_detail(self):
         page = create_page('page', 'page.html', 'en', published=True).publisher_public

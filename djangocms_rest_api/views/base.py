@@ -70,7 +70,7 @@ class PluginViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         if self.action == 'retrieve':
             obj = self.get_object()
             # Do not use model here, since it replaces base serializer with quite limited one, created from model
-            return get_serializer_class(plugin=obj.get_plugin_class(), instance=obj)
+            return get_serializer_class(plugin=obj.get_plugin_class())
         return super(PluginViewSet, self).get_serializer_class()
 
 

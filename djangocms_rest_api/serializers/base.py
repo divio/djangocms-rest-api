@@ -112,11 +112,11 @@ class BasePluginSerializer(serializers.ModelSerializer):
 
     def get_plugin_data(self, obj):
 
-        instance, plugin = obj.get_plugin_instance()
+        plugin = obj.get_plugin_class()
         model = getattr(plugin, 'model', None)
         if model:
             serializer = get_serializer(
-                instance, model=getattr(plugin, 'model', None), plugin=plugin, context=self.context)
+                obj, model=getattr(plugin, 'model', None), plugin=plugin, context=self.context)
             return serializer.data
         return {}
 
@@ -128,15 +128,15 @@ class BasePluginSerializer(serializers.ModelSerializer):
         :param obj:
         :return:
         """
-        instance, plugin = obj.get_plugin_instance()
+        plugin = obj.get_plugin_class()
         inlines = getattr(plugin, 'inlines', [])
         data = {}
         for inline in inlines:
-            for related_object in instance._meta.related_objects:
+            for related_object in obj._meta.related_objects:
                 if getattr(related_object, 'related_model', None) == inline.model:
                     name = related_object.name
                     serializer = get_serializer(
-                        getattr(instance, name).all(), model=inline.model, many=True, context=self.context)
+                        getattr(obj, name).all(), model=inline.model, many=True, context=self.context)
                     data[name] = serializer.data
                     break
         return data
@@ -150,7 +150,7 @@ class BasePluginSerializer(serializers.ModelSerializer):
         :return:
         """
         data = []
-        instance, plugin = obj.get_plugin_instance()
+        plugin = obj.get_plugin_class()
         if not(getattr(plugin, 'allow_children', False) and getattr(plugin, 'child_classes', None)):
             return data
         children = obj.get_descendants().order_by('placeholder', 'path')
@@ -239,14 +239,12 @@ def modelserializer_factory(model, serializer=serializers.ModelSerializer, field
     return serializer_class
 
 
-def get_serializer_class(plugin=None, model=None, instance=None):
+def get_serializer_class(plugin=None, model=None):
     serializer_class = None
     if plugin:
-        # import pdb
-        # pdb.set_trace()
         serializer_class = getattr(plugin, 'serializer_class', None)
-        if not serializer_class and instance:
-            serializer_class = plugin_serializer_mapping.get(instance.plugin_type)
+        if not serializer_class:
+            serializer_class = plugin_serializer_mapping.get(plugin.__name__)
 
     if not serializer_class:
         if not model:
@@ -264,7 +262,7 @@ def get_serializer(instance, plugin=None, model=None, *args, **kwargs):
     :param kwargs: kwargs like many and other
     :return:
     """
-    serializer_class = get_serializer_class(plugin=plugin, model=model, instance=instance)
+    serializer_class = get_serializer_class(plugin=plugin, model=model)
     if 'read_only' not in kwargs:
         kwargs['read_only'] = True
     return serializer_class(instance, *args, **kwargs)
