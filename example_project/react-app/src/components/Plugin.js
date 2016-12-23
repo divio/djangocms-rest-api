@@ -1,7 +1,6 @@
 // Plugin component
 var React = require('react');
 var PluginStore = require('../stores/PluginStore.js');
-var _ = require('lodash');
 
 
 var Plugin = React.createClass({
