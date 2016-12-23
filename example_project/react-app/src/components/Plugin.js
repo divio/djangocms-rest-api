@@ -25,7 +25,20 @@ var Plugin = React.createClass({
      * @return {object}
      */
     render: function () {
-        var data = this.state.plugin_type === 'FilerImagePlugin'? this.state.image : this.state.plugin_data;
+        var data = {}; //this.state.plugin_type === 'FilerImagePlugin'? this.state.image : this.state.plugin_data;
+
+        switch (this.state.plugin_type)
+        {
+            case 'FilerImagePlugin':
+                data = this.state.image;
+                break;
+            case 'MultiColumnPlugin':
+                data = this.state.children;
+                break;
+            default:
+                data = this.state.plugin_data;
+        }
+
 
         return (
             <div className="plugin">

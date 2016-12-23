@@ -191,7 +191,7 @@ class PlaceHolderSerializer(RequestSerializer, serializers.ModelSerializer):
         depth = 2
 
     def get_plugins(self, obj):
-        return [plugin.id for plugin in obj.get_plugins(self.language)]
+        return [plugin.id for plugin in obj.get_plugins(self.language).filter(parent__isnull=True)]
 
 
 def modelserializer_factory(model, serializer=serializers.ModelSerializer, fields=None, exclude=None, **kwargs):
@@ -265,7 +265,6 @@ def get_serializer(instance, plugin=None, model=None, *args, **kwargs):
     :return:
     """
     serializer_class = get_serializer_class(plugin=plugin, model=model, instance=instance)
-    print(instance.plugin_type)
     if 'read_only' not in kwargs:
         kwargs['read_only'] = True
     return serializer_class(instance, *args, **kwargs)
