@@ -2,7 +2,6 @@
 var React = require('react');
 var PageStore = require('../stores/PageStore.js');
 var Placeholder = require('./Placeholder.js');
-var _ = require('lodash');
 
 var Page = React.createClass({
 
