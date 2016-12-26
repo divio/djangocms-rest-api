@@ -113,12 +113,9 @@ class BasePluginSerializer(serializers.ModelSerializer):
     def get_plugin_data(self, obj):
 
         plugin = obj.get_plugin_class()
-        model = getattr(plugin, 'model', None)
-        if model:
-            serializer = get_serializer(
-                obj, model=getattr(plugin, 'model', None), plugin=plugin, context=self.context)
-            return serializer.data
-        return {}
+        serializer = get_serializer(
+            obj, model=plugin.model, plugin=plugin, context=self.context)
+        return serializer.data
 
     def get_inlines(self, obj):
         """
