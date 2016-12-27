@@ -10,4 +10,22 @@ module.exports = {
             response: response
         });
     },
+    receivePage: function (response) {
+        AppDispatcher.dispatch({
+            actionType: Constants.GET_PAGE,
+            response: response
+        });
+    },
+    receivePlaceholder: function (response) {
+        AppDispatcher.dispatch({
+            actionType: Constants.GET_PLACEHOLDER,
+            response: response
+        });
+    },
+    receivePlugin: function (response) {
+        AppDispatcher.dispatch({
+            actionType: Constants.GET_PLACEHOLDER,
+            response: response
+        });
+    },
 };

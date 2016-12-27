@@ -9,13 +9,13 @@ var EventEmitter = require('events').EventEmitter;
 
 var CHANGE_EVENT = 'change';
 
-// Define the store as an empty array
+// Define the store as an empty object
 var _store = {
-    items: [],
+    data: {},
 };
 
 
-var MenuStore = ObjectAssign({}, EventEmitter.prototype, {
+var PlaceholderStore = ObjectAssign({}, EventEmitter.prototype, {
 
     addChangeListener: function (cb) {
         this.on(CHANGE_EVENT, cb);
@@ -25,16 +25,14 @@ var MenuStore = ObjectAssign({}, EventEmitter.prototype, {
         this.removeListener(CHANGE_EVENT, cb);
     },
 
-    loadItems: function () {
-        ServerApi.getMenuItems();
+    loadPlaceholder: function (placeholderId) {
+            ServerApi.getPlaceholder(placeholderId);
         return _store;
     },
 
-    getItems: function () {
-        if (!_store.items.length) {
-            ServerApi.getMenuItems()
-        }
-        return _store;
+    getPlaceholder: function (id) {
+        return _store.data[id] || {};
+
     }
 
 });
@@ -46,10 +44,10 @@ AppDispatcher.register(function (payload) {
     switch (action.actionType) {
 
 
-        case AppConstants.GET_MENU_ITEMS:
+        case AppConstants.GET_PLACEHOLDER:
 
-            _store.items = action.response;
-            MenuStore.emit(CHANGE_EVENT);
+            _store.data[action.response.id] = action.response;
+            PlaceholderStore.emit(CHANGE_EVENT);
             break;
 
         default:
@@ -57,4 +55,4 @@ AppDispatcher.register(function (payload) {
     }
 });
 
-module.exports = MenuStore;
+module.exports = PlaceholderStore;

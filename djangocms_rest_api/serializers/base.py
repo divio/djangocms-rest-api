@@ -112,13 +112,10 @@ class BasePluginSerializer(serializers.ModelSerializer):
 
     def get_plugin_data(self, obj):
 
-        instance, plugin = obj.get_plugin_instance()
-        model = getattr(plugin, 'model', None)
-        if model:
-            serializer = get_serializer(
-                instance, model=getattr(plugin, 'model', None), plugin=plugin, context=self.context)
-            return serializer.data
-        return {}
+        plugin = obj.get_plugin_class()
+        serializer = get_serializer(
+            obj, model=plugin.model, plugin=plugin, context=self.context)
+        return serializer.data
 
     def get_inlines(self, obj):
         """
@@ -128,15 +125,15 @@ class BasePluginSerializer(serializers.ModelSerializer):
         :param obj:
         :return:
         """
-        instance, plugin = obj.get_plugin_instance()
+        plugin = obj.get_plugin_class()
         inlines = getattr(plugin, 'inlines', [])
         data = {}
         for inline in inlines:
-            for related_object in instance._meta.related_objects:
+            for related_object in obj._meta.related_objects:
                 if getattr(related_object, 'related_model', None) == inline.model:
                     name = related_object.name
                     serializer = get_serializer(
-                        getattr(instance, name).all(), model=inline.model, many=True, context=self.context)
+                        getattr(obj, name).all(), model=inline.model, many=True, context=self.context)
                     data[name] = serializer.data
                     break
         return data
@@ -150,7 +147,7 @@ class BasePluginSerializer(serializers.ModelSerializer):
         :return:
         """
         data = []
-        instance, plugin = obj.get_plugin_instance()
+        plugin = obj.get_plugin_class()
         if not(getattr(plugin, 'allow_children', False) and getattr(plugin, 'child_classes', None)):
             return data
         children = obj.get_descendants().order_by('placeholder', 'path')
@@ -191,7 +188,7 @@ class PlaceHolderSerializer(RequestSerializer, serializers.ModelSerializer):
         depth = 2
 
     def get_plugins(self, obj):
-        return [plugin.id for plugin in obj.get_plugins(self.language)]
+        return [plugin.id for plugin in obj.get_plugins(self.language).filter(parent__isnull=True)]
 
 
 def modelserializer_factory(model, serializer=serializers.ModelSerializer, fields=None, exclude=None, **kwargs):
@@ -244,7 +241,7 @@ def get_serializer_class(plugin=None, model=None):
     if plugin:
         serializer_class = getattr(plugin, 'serializer_class', None)
         if not serializer_class:
-            serializer_class = plugin_serializer_mapping.get(plugin.plugin_type)
+            serializer_class = plugin_serializer_mapping.get(plugin.__name__)
 
     if not serializer_class:
         if not model:

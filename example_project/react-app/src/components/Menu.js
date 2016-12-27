@@ -9,7 +9,7 @@ var Nav = require('react-bootstrap/lib/Nav');
 var Menu = React.createClass({
 
     getInitialState: function () {
-        return MenuStore.getItems();
+        return MenuStore.loadItems();
     },
 
     componentDidMount: function () {

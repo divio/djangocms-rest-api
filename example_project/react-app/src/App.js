@@ -8,6 +8,9 @@ class App extends Component {
             <div className="App">
 
                 <ExampleApp/>
+                <div className="container">
+          {this.props.children}
+        </div>
 
             </div>
         );
