@@ -60,7 +60,7 @@ class PluginViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
             raise PermissionDenied()
         is_visible = check_if_page_is_visible(self.request, page)
         if not is_visible:
-            raise PermissionDenied(_('You are not allowed to se this page'))
+            raise PermissionDenied(_('You are not allowed to see this page'))
 
         instance, plugin = obj.get_plugin_instance()
         return instance
