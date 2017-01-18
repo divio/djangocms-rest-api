@@ -27,7 +27,8 @@ class PagesTestCase(CMSApiTestCase):
         title_1 = 'page'
         title_2 = 'inner'
         title_3 = 'page 3'
-        page = create_page(title_1, 'page.html', 'en', published=True).publisher_public
+        page = create_page(title_1, 'page.html', 'en', published=True)
+        page_1_public = page.publisher_public
         page_2 = create_page(title_2, 'page.html', 'en', published=True, parent=page).publisher_public
         page_3 = create_page(title_3, 'page.html', 'en', published=False)
 
@@ -52,9 +53,48 @@ class PagesTestCase(CMSApiTestCase):
         with self.login_user_context(user):
             url = reverse('api:page-list')
             response = self.client.get(url, format='json')
-            self.assertEqual(len(response.data), 3)
+            self.assertEqual(len(response.data), 2)
             for page in response.data:
                 self.assertIn(page.get('title'), {title_1, title_2, title_3})
+
+    def test_home(self):
+        title_1 = 'page'
+        title_2 = 'inner'
+        title_3 = 'page 3'
+        page = create_page(title_1, 'page.html', 'en', slug='/', published=True).publisher_public
+        page_2 = create_page(title_2, 'page.html', 'en', published=True, parent=page).publisher_public
+
+        url = reverse('api:page-home')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.data['slug'], '/')
+
+    def test_root(self):
+        title_1 = 'page'
+        title_2 = 'inner'
+        title_3 = 'page 3'
+        page = create_page(title_1, 'page.html', 'en', published=True)
+        page_1_public = page.publisher_public
+        page_2 = create_page(title_2, 'page.html', 'en', published=True, parent=page).publisher_public
+        page_2 = create_page(title_3, 'page.html', 'en', published=True).publisher_public
+
+        url = reverse('api:page-root')
+        response = self.client.get(url, format='json')
+        self.assertEqual(len(response.data), 2)
+
+    def test_nested_for_page(self):
+        title_1 = 'page'
+        title_1_1 = 'inner'
+        title_1_2 = 'inner 2'
+        title_3 = 'page 3'
+        page = create_page(title_1, 'page.html', 'en', published=True)
+        page_1_public = page.publisher_public
+        page_2 = create_page(title_1_1, 'page.html', 'en', published=True, parent=page).publisher_public
+        page_2 = create_page(title_1_2, 'page.html', 'en', published=True, parent=page).publisher_public
+        page_2 = create_page(title_3, 'page.html', 'en', published=True).publisher_public
+
+        url = reverse('api:page-nested', kwargs={'pk': page_1_public.pk})
+        response = self.client.get(url, format='json')
+        self.assertEqual(len(response.data), 2)
 
 
 class PlaceHolderTestCase(CMSApiTestCase):

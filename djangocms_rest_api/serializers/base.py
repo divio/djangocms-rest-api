@@ -24,7 +24,6 @@ class PageSerializer(RequestSerializer, serializers.ModelSerializer):
     meta_description = serializers.SerializerMethodField()
     slug = serializers.SerializerMethodField()
     path = serializers.SerializerMethodField()
-    template = serializers.SerializerMethodField()
     absolute_url = serializers.SerializerMethodField()
     languages = serializers.ListField(source='get_languages')
     url = serializers.SerializerMethodField()
@@ -35,7 +34,7 @@ class PageSerializer(RequestSerializer, serializers.ModelSerializer):
         fields = [
             'id', 'title', 'placeholders', 'is_home', 'languages', 'parent',
             'site', 'page_title', 'menu_title', 'slug', 'url', 'path',
-            'absolute_url'
+            'absolute_url', 'meta_description', 'redirect', 'parent'
         ]
 
     def get_title(self, obj):
@@ -55,9 +54,6 @@ class PageSerializer(RequestSerializer, serializers.ModelSerializer):
 
     def get_path(self, obj):
         return obj.get_path(self.language)
-
-    def get_template(self, obj):
-        return obj.get_template()
 
     def get_absolute_url(self, obj):
         return obj.get_absolute_url(self.language)

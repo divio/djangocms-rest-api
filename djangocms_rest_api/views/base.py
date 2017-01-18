@@ -2,12 +2,16 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from django.contrib.sites.shortcuts import get_current_site
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext as _
 from cms.models import Page, Placeholder, CMSPlugin
 from rest_framework import mixins
+from rest_framework import status
 from rest_framework import viewsets
+from rest_framework.decorators import list_route, detail_route
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
+from rest_framework.response import Response
 
 from djangocms_rest_api.serializers import (
     PageSerializer, PlaceHolderSerializer, BasePluginSerializer, get_serializer_class
@@ -19,12 +23,32 @@ class PageViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PageSerializer
     queryset = Page.objects.all()
 
+    @cached_property
+    def site(self):
+        return get_current_site(self.request)
+
     def get_queryset(self):
-        site = get_current_site(self.request)
-        if self.request.user.is_staff:
-            return Page.objects.drafts().on_site(site=site).distinct()
-        else:
-            return Page.objects.public().on_site(site=site).distinct()
+        queryset = Page.objects.published(site=self.site)
+        if self.action == 'root':
+            queryset = queryset.all_root()
+        elif self.action == 'nested' and self.kwargs.get('pk'):
+
+            queryset = queryset.filter(parent__id=self.kwargs['pk'])
+        return queryset.public().distinct()
+
+    @list_route(methods=['get'])
+    def home(self, request):
+        page = Page.objects.get_home()
+        data = self.get_serializer(instance=page).data
+        return Response(data, status=status.HTTP_200_OK)
+
+    @list_route(methods=['get'])
+    def root(self, request):
+        return self.list(request)
+
+    @detail_route(methods=['get'])
+    def nested(self, request, pk=None):
+        return self.list(request)
 
 
 class PlaceHolderViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
