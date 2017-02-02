@@ -12,7 +12,7 @@ from rest_framework.serializers import ListSerializer
 
 from djangocms_rest_api.serializers.mapping import plugin_serializer_mapping
 from djangocms_rest_api.serializers.utils import RequestSerializer
-from djangocms_rest_api.settings import EXCLUDE_FIELDS
+from djangocms_rest_api.settings import GENERIC_PLUGIN_EXCLUDE_FIELDS, GENERIC_PLUGIN_DATA_EXCLUDE_FIELDS
 
 serializer_cache = {}
 
@@ -85,7 +85,7 @@ class PluginListSerializer(ListSerializer):
         resp = []
         for item in iterable:
             instance, plugin = item.get_plugin_instance()
-            plugin = item.get_plugin_class()
+            plugin = plugin.__class__
             serializer = get_serializer(instance, plugin=plugin)
             resp.append(serializer.data)
 
@@ -104,7 +104,7 @@ class BasePluginSerializer(serializers.ModelSerializer):
         model = CMSPlugin
         list_serializer_class = PluginListSerializer
         fields = [
-            'id', 'placeholder', 'position', 'plugin_type',
+            'id', 'placeholder', 'position', 'language', 'plugin_type',
             'plugin_data', 'inlines', 'children']
 
     def get_plugin_data(self, obj):
@@ -112,7 +112,7 @@ class BasePluginSerializer(serializers.ModelSerializer):
         plugin = obj.get_plugin_class()
         serializer = get_serializer(
             obj, model=plugin.model, plugin=plugin, context=self.context,
-            exclude=EXCLUDE_FIELDS+['plugin_type', 'position'])
+            exclude=GENERIC_PLUGIN_EXCLUDE_FIELDS+GENERIC_PLUGIN_DATA_EXCLUDE_FIELDS)
         return serializer.data
 
     def get_inlines(self, obj):
@@ -199,8 +199,7 @@ def modelserializer_factory(model, serializer=serializers.ModelSerializer, field
     :param kwargs: fields mapping
     :return:
     """
-    exclude = exclude or EXCLUDE_FIELDS
-    exclude = exclude[:]
+    exclude = exclude or GENERIC_PLUGIN_EXCLUDE_FIELDS
 
     # TODO: decide if we need cache and what to do with parameters tha can be different
     serializer_class = serializer_cache.get(model, None)
