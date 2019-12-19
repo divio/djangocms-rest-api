@@ -12,6 +12,7 @@ from rest_framework.serializers import ListSerializer
 
 from djangocms_rest_api.serializers.mapping import plugin_serializer_mapping
 from djangocms_rest_api.serializers.utils import RequestSerializer
+from djangocms_rest_api.settings import GENERIC_PLUGIN_EXCLUDE_FIELDS, GENERIC_PLUGIN_DATA_EXCLUDE_FIELDS
 
 serializer_cache = {}
 
@@ -23,7 +24,6 @@ class PageSerializer(RequestSerializer, serializers.ModelSerializer):
     meta_description = serializers.SerializerMethodField()
     slug = serializers.SerializerMethodField()
     path = serializers.SerializerMethodField()
-    template = serializers.SerializerMethodField()
     absolute_url = serializers.SerializerMethodField()
     languages = serializers.ListField(source='get_languages')
     url = serializers.SerializerMethodField()
@@ -32,10 +32,9 @@ class PageSerializer(RequestSerializer, serializers.ModelSerializer):
     class Meta:
         model = Page
         fields = [
-            'id', 'title', 'placeholders', 'creation_date', 'changed_date', 'publication_date',
-            'publication_end_date', 'in_navigation', 'template', 'is_home', 'languages', 'parent',
-            'site', 'page_title', 'menu_title', 'meta_description', 'slug', 'url', 'path',
-            'absolute_url', 'redirect'
+            'id', 'title', 'placeholders', 'is_home', 'languages', 'parent',
+            'site', 'page_title', 'menu_title', 'slug', 'url', 'path',
+            'absolute_url', 'meta_description', 'redirect', 'parent'
         ]
 
     def get_title(self, obj):
@@ -55,9 +54,6 @@ class PageSerializer(RequestSerializer, serializers.ModelSerializer):
 
     def get_path(self, obj):
         return obj.get_path(self.language)
-
-    def get_template(self, obj):
-        return obj.get_template()
 
     def get_absolute_url(self, obj):
         return obj.get_absolute_url(self.language)
@@ -89,6 +85,7 @@ class PluginListSerializer(ListSerializer):
         resp = []
         for item in iterable:
             instance, plugin = item.get_plugin_instance()
+            plugin = plugin.__class__
             serializer = get_serializer(instance, plugin=plugin)
             resp.append(serializer.data)
 
@@ -107,14 +104,15 @@ class BasePluginSerializer(serializers.ModelSerializer):
         model = CMSPlugin
         list_serializer_class = PluginListSerializer
         fields = [
-            'id', 'placeholder', 'parent', 'position', 'language', 'plugin_type', 'creation_date', 'changed_date',
+            'id', 'placeholder', 'position', 'language', 'plugin_type',
             'plugin_data', 'inlines', 'children']
 
     def get_plugin_data(self, obj):
 
         plugin = obj.get_plugin_class()
         serializer = get_serializer(
-            obj, model=plugin.model, plugin=plugin, context=self.context)
+            obj, model=plugin.model, plugin=plugin, context=self.context,
+            exclude=GENERIC_PLUGIN_EXCLUDE_FIELDS+GENERIC_PLUGIN_DATA_EXCLUDE_FIELDS)
         return serializer.data
 
     def get_inlines(self, obj):
@@ -201,6 +199,7 @@ def modelserializer_factory(model, serializer=serializers.ModelSerializer, field
     :param kwargs: fields mapping
     :return:
     """
+    exclude = exclude or GENERIC_PLUGIN_EXCLUDE_FIELDS
 
     # TODO: decide if we need cache and what to do with parameters tha can be different
     serializer_class = serializer_cache.get(model, None)
@@ -215,10 +214,13 @@ def modelserializer_factory(model, serializer=serializers.ModelSerializer, field
         fields.sort(key=lambda x: x[1]._creation_counter)
         return OrderedDict(fields)
 
+    declared_fields = _get_declared_fields(kwargs)
     meta_attrs = {'model': model}
     if fields is not None:
         meta_attrs['fields'] = fields
     if exclude is not None:
+        names = [field.name for field in model._meta.get_fields()]
+        exclude = list(set(exclude).intersection(set(names)))
         meta_attrs['exclude'] = exclude
     if fields is None and exclude is None:
         meta_attrs['fields'] = '__all__'
@@ -229,14 +231,14 @@ def modelserializer_factory(model, serializer=serializers.ModelSerializer, field
 
     serializer_class_attrs = {
         'Meta': Meta,
-        '_get_declared_fields': _get_declared_fields(kwargs),
+        '_get_declared_fields': declared_fields,
     }
     serializer_class = type(serializer)(class_name, (serializer,), serializer_class_attrs)
     serializer_cache[model] = serializer_class
     return serializer_class
 
 
-def get_serializer_class(plugin=None, model=None):
+def get_serializer_class(plugin=None, model=None, fields=None, exclude=None):
     serializer_class = None
     if plugin:
         serializer_class = getattr(plugin, 'serializer_class', None)
@@ -247,11 +249,11 @@ def get_serializer_class(plugin=None, model=None):
         if not model:
             serializer_class = BasePluginSerializer
         else:
-            serializer_class = modelserializer_factory(model)
+            serializer_class = modelserializer_factory(model, fields=fields, exclude=exclude)
     return serializer_class
 
 
-def get_serializer(instance, plugin=None, model=None, *args, **kwargs):
+def get_serializer(instance, plugin=None, model=None, fields=None, exclude=None, *args, **kwargs):
     """
     :param instance: model instance or queryset
     :param plugin: plugin instance that is used to get serializer for
@@ -259,7 +261,7 @@ def get_serializer(instance, plugin=None, model=None, *args, **kwargs):
     :param kwargs: kwargs like many and other
     :return:
     """
-    serializer_class = get_serializer_class(plugin=plugin, model=model)
+    serializer_class = get_serializer_class(plugin=plugin, model=model, fields=fields, exclude=exclude)
     if 'read_only' not in kwargs:
         kwargs['read_only'] = True
     return serializer_class(instance, *args, **kwargs)
