@@ -1,5 +1,5 @@
 django-cms==3.4
-djangorestframework==3.5.2
+djangorestframework==3.9.1
 django-treebeard>=4.0
 
 https://github.com/divio/djangocms-column/archive/master.zip?1469719301.15
